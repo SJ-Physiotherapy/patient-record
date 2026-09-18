@@ -1,0 +1,1527 @@
+/* =========================================================================
+   SJ PHYSIOTHERAPY - PATIENT ASSESSMENT & RECORDS SYSTEM
+
+   This stylesheet is the billing app's own design system (variables,
+   layout, buttons, sidebar, tables, modals, print pipeline) reused as-is -
+   same clinic, same look - with a block of new rules appended at the very
+   end for the pieces unique to this app: the editable ROM/MMT tables, the
+   interactive body-map diagrams, the VAS pain scale, Past Medical History
+   checkboxes, the printed Assessment Sheet layout, and the signature
+   upload control. Selectors from the billing app that don't apply here
+   (QR codes, tax, inventory, stock) are simply never referenced and cost
+   nothing.
+   ========================================================================= */
+:root {
+  /* Theme customization tokens - JS (applyTheme_ in app.js) sets these
+     directly from Admin Settings -> Theme, INCLUDING the fully-resolved
+     gradient strings (not left for CSS to compose from sub-variables) -
+     some browsers don't reliably re-resolve a var() that itself contains
+     another var() when used inside border-image, so the composed value is
+     computed once in JS and written straight in, everywhere it's needed. */
+  --theme-button-from: #2778b7;
+  --theme-button-to: #a8d339;
+  --theme-button-text: #FFFFFF;
+  --theme-sidebar-from: #2778b7;
+  --theme-sidebar-to: #a8d339;
+  --theme-sidebar-text: #FFFFFF;
+  --theme-nav-active-bg: #FFFFFF;
+  --theme-nav-active-text: #2778b7;
+  --theme-bill-header: #E1341E;
+  --theme-heading: #182322;
+  --theme-muted: #4B5A57;
+  --theme-bg: #F6F4F3;
+  --theme-surface: #FFFFFF;
+  --theme-border: #E7DCD8;
+
+  /* Bill/PDF design - shared by on-screen preview, print, Save-as-PDF and
+     the emailed PDF/email body, so there is exactly one visual design for
+     a bill, not four slightly-different ones. */
+  --theme-bill-font: Georgia, 'Times New Roman', Times, serif;
+  --theme-bill-discount: #B23A2E;
+  --theme-bill-logo-w: 96px;
+  --theme-bill-logo-h: 58px;
+
+  /* Buttons - normal + hover, for both the solid/gradient "primary" style
+     and the bordered "secondary/outline" style (Logout, Refresh, Check
+     Data Status, Reset Numbering, and anything else sharing .btn-outline). */
+  --theme-button-hover-from: #2778b7;
+  --theme-button-hover-to: #a8d339;
+  --theme-outline-text: #2778b7;
+  --theme-outline-border: #2778b7;
+  --theme-outline-hover-bg: #FCE2DC;
+  --theme-outline-hover-text: #2778b7;
+
+  --ink: var(--theme-heading);
+  --ink-soft: var(--theme-muted);
+  --muted: var(--theme-muted);
+  --line: var(--theme-border);
+  --bg: var(--theme-bg);
+  --surface: var(--theme-surface);
+  /* --paper is deliberately NOT themed - the printable bill itself always
+     stays near-white regardless of the app's on-screen theme, the same way
+     the print stylesheet already forces a plain white page. A bill is a
+     document meant to be printed/emailed/read on any device; locking its
+     background to white keeps it legible and professional no matter how
+     wild the on-screen dashboard theme gets. */
+  --paper: #FFFFFE;
+
+  /* Core brand theme - default values here exactly match the original
+     hardcoded design, so a spreadsheet that has never customized its theme
+     looks identical to before this feature existed. applyTheme_() 
+     overwrites --primary/--brand-gradient/--sidebar-gradient directly with
+     fully-resolved values once settings load. */
+  --primary: #2778b7;
+  --primary-dark: #AE2314;
+  --primary-soft: #FCE2DC;
+  --accent: #a8d339;
+  --accent-dark: #E4712B;
+  --accent-soft: #FFEADA;
+  --brand-gradient: linear-gradient(135deg, #2778b7 0%, #a8d339 100%);
+  --brand-gradient-hover: linear-gradient(135deg, #2778b7 0%, #a8d339 100%);
+  --brand-gradient-soft: linear-gradient(135deg, #FFEDEA 0%, #FFF1E4 100%);
+  --sidebar-gradient: linear-gradient(180deg, #2778b7 0%, #a8d339 100%);
+
+  /* "Success"/positive states use a warm gold instead of green, per theme */
+  --success: #C9781C;
+  --success-soft: #FBEEDA;
+  --danger: #C64B3E;
+  --danger-soft: #FBE9E6;
+  --warn: #C68A1E;
+  --warn-soft: #FBF1DC;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 1px 2px rgba(15, 30, 27, 0.06), 0 1px 1px rgba(15, 30, 27, 0.04);
+  --shadow-md: 0 6px 20px rgba(15, 30, 27, 0.10);
+  --shadow-lg: 0 16px 40px rgba(15, 30, 27, 0.16);
+
+  --font-display: "Cambria", "Georgia", "Times New Roman", Times, serif;
+  --font-body: "Cambria", "Georgia", "Times New Roman", Times, serif;
+  --font-mono: "Consolas", "SFMono-Regular", Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; width: 100%; overflow-x: hidden; }
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+img { max-width: 100%; display: block; }
+button { font-family: inherit; }
+a { color: var(--primary); }
+
+/* -------------------------------------------------------------------------
+   MOBILE HORIZONTAL-OVERFLOW SAFETY NET
+   Root cause of "page is wider than the phone screen even though nothing
+   visibly looks broken": CSS Grid/Flexbox items default to min-width:auto,
+   which means an item is never allowed to shrink narrower than its own
+   content's natural width - a single date input, long price, or number can
+   silently force its whole row (and therefore the whole page) wider than
+   the viewport on a narrow phone, with zero visual sign of it in a
+   screenshot. This resets that default to 0 everywhere the app uses grid/
+   flexbox layouts, so every item is always free to shrink to fit - the
+   existing gap/wrap/grid-template-column rules above are what still
+   control how things actually lay out, this only removes the invisible
+   floor underneath them. Also hard-caps a few element types that can have
+   their own intrinsic widths (form controls, tables, media).
+   NOTE: <button> is deliberately EXCLUDED here - a button's label is plain
+   nowrap text with no overflow clipping, so letting a button's box shrink
+   below its label's width doesn't stop the overflow, it just makes the
+   label spill out and visually overlap whatever sits next to it (this bit
+   the "Add Product/Service Row" buttons on narrow phones). Buttons get
+   flex-wrap on their row instead (see BUTTON GROUPS below), which is the
+   correct fix for that failure mode. ------------------------------------ */
+input, select, textarea { min-width: 0; max-width: 100%; }
+svg, video, iframe, table { max-width: 100%; }
+.form-grid > *, .dash-grid > *, .billing-grid > *, .biller-box > *,
+.inv-kpi-grid > *, .bill-meta-grid > *, .theme-row > *, .theme-row-controls > *,
+.product-row > *, .cf-date-inputs > *, .lookup-search > *, .bill-toggles-wrap > *,
+.app-shell > *, .dash-card > *, .nav-item, .sidebar-brand, .topbar .brand-mini,
+.view-header > * {
+  min-width: 0;
+}
+
+/* -------------------------------------------------------------------------
+   BUTTON GROUPS - any row of 2+ buttons that might not fit side by side on
+   a phone wraps onto its own line(s) instead of shrinking (which, per the
+   note above, would make button labels visually overlap). Buttons keep
+   their natural label width and simply stack when there's no room. ------ */
+.add-product-bar, .preview-actions, .modal-actions, .report-toolbar-right,
+.ds-actions, .inv-toolbar, .report-columns-actions, .theme-checkbox-row {
+  flex-wrap: wrap;
+}
+.add-product-bar .btn { flex: 1 1 180px; }
+
+.hidden { display: none !important; }
+
+::selection { background: var(--accent-soft); color: var(--ink); }
+
+/* Focus visibility */
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* =========================================================================
+   LOGIN SCREEN
+   ========================================================================= */
+.login-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--theme-login-gradient, linear-gradient(135deg, #2778b7 0%, #a8d339 100%));
+  padding: 24px;
+}
+.login-card {
+  background: var(--theme-login-card-bg, #FFFFFF);
+  width: 100%;
+  max-width: 400px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 40px 32px 32px;
+  text-align: center;
+}
+.login-logo {
+  width: 100px; height: 100px; border-radius: 50%;
+  object-fit: cover; margin: 0 auto 14px;
+  border: 3px solid var(--accent-soft);
+}
+.login-card h1 {
+  font-size: 20px; margin: 0 0 4px;
+  letter-spacing: 0.2px;
+  color: var(--theme-login-heading, #182322);
+}
+.login-card p.sub { color: var(--theme-login-text, #4B5A57); font-size: 13px; margin: 0 0 24px; }
+.field { text-align: left; margin-bottom: 16px; }
+.field label {
+  display: block; font-size: 12px; font-weight: 600; letter-spacing: 0.3px;
+  color: var(--ink-soft); margin-bottom: 6px; text-transform: uppercase;
+}
+.field input, .field select, .field textarea {
+  width: 100%; padding: 11px 13px; border: 1.5px solid var(--line);
+  border-radius: var(--radius-sm); font-size: 14.5px; background: var(--surface);
+  color: var(--ink); transition: border-color .15s ease, box-shadow .15s ease;
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); outline: none;
+}
+.field-hint { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+/* Every field label inside Admin Settings (all tabs) gets this fixed brand
+   blue, so field names read clearly and consistently no matter what the
+   rest of the theme's colors are set to. */
+.admin-pane .field label, .theme-section .field label { color: #2778b7; }
+/* The "(sidebar / login - square works best)" part of a label - kept
+   visually distinct (muted, not blue) so it reads as a secondary note, not
+   part of the field name itself. See styleFieldLabelHints_() in app.js. */
+.field-label-hint { color: var(--muted); font-weight: 500; text-transform: none; letter-spacing: normal; font-size: 0.92em; }
+.field-error { font-size: 11.5px; color: var(--danger); margin-top: 4px; display: none; }
+.field.has-error input { border-color: var(--danger); }
+.field.has-error .field-error { display: block; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border: none; border-radius: var(--radius-sm); padding: 11px 18px;
+  font-size: 14px; font-weight: 600; cursor: pointer; transition: transform .08s ease, opacity .15s ease, background .15s ease;
+  white-space: nowrap;
+}
+.btn:active { transform: translateY(1px); }
+.btn-primary { background: var(--brand-gradient); color: var(--theme-button-text); box-shadow: 0 4px 12px -4px rgba(0,0,0,.35); }
+.btn-primary:hover { background: var(--brand-gradient-hover); }
+.btn-accent { background: var(--brand-gradient); color: var(--theme-button-text); box-shadow: 0 4px 12px -4px rgba(0,0,0,.35); }
+.btn-accent:hover { background: var(--brand-gradient-hover); }
+.btn-outline { background: transparent; color: var(--theme-outline-text); border: 1.5px solid var(--theme-outline-border); }
+.btn-outline:hover { background: var(--theme-outline-hover-bg); color: var(--theme-outline-hover-text); border-color: var(--theme-outline-hover-text); }
+.btn-danger { background: var(--danger-soft); color: var(--danger); }
+.btn-danger:hover { background: var(--danger); color: #fff; }
+.btn-block { width: 100%; }
+.btn-sm { padding: 7px 12px; font-size: 12.5px; }
+.btn[disabled] { opacity: .55; cursor: not-allowed; }
+
+.login-error {
+  background: var(--danger-soft); color: var(--danger); font-size: 13px;
+  padding: 10px 12px; border-radius: var(--radius-sm); margin-bottom: 16px; display: none;
+}
+
+/* =========================================================================
+   APP SHELL
+   ========================================================================= */
+.stale-backend-bar {
+  display: none; position: sticky; top: 0; left: 0; right: 0; z-index: 500;
+  background: #FFF3CD; color: #7A5B00; border-bottom: 2px solid #E6B800;
+  font-size: 12.5px; font-weight: 600; line-height: 1.5;
+  padding: 10px 16px; text-align: center;
+}
+.stale-backend-bar.show { display: block; }
+.stale-backend-bar code {
+  background: rgba(0,0,0,.08); padding: 1px 5px; border-radius: 4px; font-size: 11.5px;
+}
+
+.app-shell { display: flex; min-height: 100vh; }
+
+.sidebar {
+  width: 68px; flex-shrink: 0; background: var(--sidebar-gradient); color: var(--theme-sidebar-text);
+  display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh;
+  z-index: 40; overflow: hidden; white-space: nowrap;
+  transition: width .2s ease;
+}
+.sidebar:hover {
+  width: 232px;
+}
+
+.nav-label {
+  opacity: 0;
+  transition: opacity .15s ease;
+}
+.sidebar:hover .nav-label {
+  opacity: 1;
+}
+
+.sidebar-brand .brand-text {
+  opacity: 0;
+  transition: opacity .15s ease;
+  white-space: nowrap;
+}
+.sidebar:hover .sidebar-brand .brand-text {
+  opacity: 1;
+}
+
+.sidebar-footer {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s ease;
+}
+.sidebar:hover .sidebar-footer {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.sidebar-brand {
+  display: flex; align-items: center; gap: 10px; padding: 18px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+}
+.sidebar-brand img { width: 38px; height: 38px; border-radius: 8px; object-fit: cover; }
+.sidebar-brand .name { font-size: 13.5px; font-weight: 700; line-height: 1.25; white-space: nowrap; }
+.sidebar-brand .tag { font-size: 10.5px; opacity: .65; letter-spacing: .4px; }
+
+.nav { flex: 1; padding: 14px 10px; display: flex; flex-direction: column; gap: 2px; }
+.nav-item {
+  display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: var(--radius-sm);
+  color: var(--theme-sidebar-text); opacity: .78; font-size: 13.5px; font-weight: 500; cursor: pointer; border: none;
+  background: transparent; text-align: left; width: 100%;
+  white-space: nowrap; transition: opacity .12s ease, background .12s ease;
+}
+.nav-item .ic { width: 24px; text-align: center; font-size: 20px; flex-shrink: 0; }
+.nav-item:hover { background: rgba(127,127,127,0.14); opacity: 1; }
+.nav-item.active { background: var(--theme-nav-active-bg); color: var(--theme-nav-active-text); opacity: 1; font-weight: 700; }
+
+.sidebar-footer { padding: 14px; border-top: 1px solid rgba(255,255,255,0.12); }
+.sidebar-footer .who { font-size: 12px; opacity: .8; margin-bottom: 8px; white-space: nowrap; }
+
+/* Creator credit - sits below the Log Out button, faded to ~50% so it never
+   competes with real app UI. Hand-drawn SVG icons (no images), same
+   show-on-hover behavior as the rest of the sidebar footer. */
+.creator-credit {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,0.12);
+  opacity: .5;
+  white-space: nowrap;
+}
+.creator-credit-name {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .2px;
+  margin-bottom: 9px;
+}
+.creator-credit-icons { display: flex; align-items: center; gap: 13px; }
+.creator-credit-icons a {
+  color: var(--theme-sidebar-text);
+  display: flex;
+  transition: opacity .15s ease;
+}
+.creator-credit-icons a:hover { opacity: .8; }
+.creator-credit-icons svg { width: 15px; height: 15px; display: block; }
+
+.main-area { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.topbar {
+  display: none;
+  align-items: center; justify-content: space-between;
+  padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; z-index: 30;
+}
+.topbar .hamburger {
+  background: none; border: none; font-size: 27px; line-height: 1; cursor: pointer; color: var(--primary);
+  padding: 6px 10px; border-radius: var(--radius-sm);
+}
+.topbar .hamburger:active { background: var(--primary-soft); }
+.topbar .brand-mini { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; }
+.topbar .brand-mini img { width: 26px; height: 26px; border-radius: 6px; }
+
+.view { display: none; padding: 22px; }
+.view.active { display: block; }
+
+.view-header {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  margin-bottom: 18px;
+}
+.view-header h2 { margin: 0; font-size: 20px; color: var(--theme-page-heading); }
+.view-header p { margin: 2px 0 0; color: var(--theme-page-subheading); font-size: 13px; }
+
+/* =========================================================================
+   BILLING VIEW - split layout
+   ========================================================================= */
+.billing-grid {
+  display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: 20px; align-items: start;
+}
+.panel {
+  background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+  border: 1px solid var(--line); padding: 20px;
+}
+.panel h3 {
+  font-size: 13px; text-transform: uppercase; letter-spacing: .5px; color: var(--theme-section-heading);
+  margin: 0 0 14px; display: flex; align-items: center; gap: 8px;
+}
+.panel h4 { color: var(--theme-section-heading); }
+.panel + .panel { margin-top: 16px; }
+
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
+.form-grid .span-2 { grid-column: 1 / -1; }
+
+.product-row {
+  display: flex; flex-wrap: wrap; gap: 10px;
+  align-items: flex-end; padding: 12px 0; border-bottom: 1px dashed var(--line);
+}
+/* Every field in a row is a flex item that can grow, shrink, and - most
+   importantly - WRAP onto its own line rather than overflow, when there
+   isn't room for all of them side by side (small screens, or the extra
+   Discount % field appearing). No fixed column count to fight with. */
+.product-row > div { flex: 1 1 100px; min-width: 90px; }
+.product-row .autocomplete-wrap { flex: 3 1 200px; min-width: 160px; }
+.product-row .row-discount-wrap,
+.product-row .erow-discount-wrap { flex: 1 1 90px; min-width: 80px; }
+.product-row .remove-row { flex: 0 0 auto; align-self: flex-end; }
+.product-row input { width: 100%; box-sizing: border-box; }
+.product-row:last-child { border-bottom: none; }
+.product-row .mini-label { font-size: 10.5px; color: var(--muted); margin-bottom: 4px; display: block; }
+.autocomplete-wrap { position: relative; }
+.row-product-dropdown {
+  position: absolute; top: 100%; left: 0; right: 0; margin-top: 2px;
+  background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md); max-height: 220px; overflow-y: auto; z-index: 50;
+  display: none;
+}
+.row-product-dropdown.show { display: block; }
+.dropdown-item { padding: 8px 12px; cursor: pointer; font-size: 13.5px; color: var(--ink); }
+.dropdown-item:hover, .dropdown-item.active { background: var(--primary-soft); }
+.dropdown-item.add-new { color: var(--primary-dark); font-weight: 700; border-top: 1px solid var(--line); }
+.dropdown-item.no-match { color: var(--muted); cursor: default; }
+
+
+
+
+/* Live "Available: X in stock" hint shown next to the product name field
+   while creating a bill - sits on the same line as the "Product" label so
+   it never adds height to the row or disturbs the existing grid alignment. */
+.row-label-line { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+.row-stock-badge {
+  font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 999px;
+  white-space: nowrap; display: none;
+}
+.row-stock-badge.show { display: inline-block; }
+.row-stock-badge.ok   { background: var(--success-soft); color: var(--success); }
+.row-stock-badge.low  { background: var(--warn-soft); color: var(--warn); }
+.row-stock-badge.out  { background: var(--danger-soft); color: var(--danger); }
+.row-stock-badge.na   { background: var(--line); color: var(--muted); }
+
+.line-total { font-weight: 700; font-size: 14px; padding: 11px 0; color: var(--primary-dark); }
+.remove-row {
+  background: var(--danger-soft); color: var(--danger); border: none; border-radius: var(--radius-sm);
+  width: 34px; height: 34px; cursor: pointer; font-size: 15px;
+}
+.add-product-bar { display: flex; gap: 8px; margin-top: 12px; }
+
+.totals-strip {
+  display: flex; justify-content: flex-end; gap: 28px; padding: 14px 4px 4px; margin-top: 6px;
+  border-top: 2px solid var(--primary-soft);
+}
+.totals-strip .t-item { text-align: right; }
+.totals-strip .t-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+.totals-strip .t-value { font-size: 19px; font-weight: 800; color: var(--primary-dark); }
+
+.biller-box {
+  display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end;
+  background: var(--primary-soft); padding: 14px; border-radius: var(--radius-md);
+}
+.biller-status { font-size: 12.5px; margin-top: 8px; font-weight: 600; }
+.biller-status.ok { color: var(--success); }
+.biller-status.err { color: var(--danger); }
+
+.payment-note {
+  margin-top: 12px; padding: 12px 14px; border-radius: var(--radius-md); font-size: 13px; display: none;
+}
+.payment-note.cash { background: var(--accent-soft); color: var(--accent-dark); display: block; }
+.payment-note.upi { background: var(--primary-soft); color: var(--primary-dark); display: block; }
+
+.qr-box { text-align: center; margin-top: 14px; padding: 16px; background: var(--surface);
+  border: 1.5px dashed var(--primary); border-radius: var(--radius-md); display: none; }
+.qr-box.show { display: block; }
+.qr-box img { width: 176px; height: 176px; margin: 0 auto 8px; border-radius: 8px; }
+.qr-status { font-size: 13px; font-weight: 700; }
+.qr-status.pending { color: var(--warn); }
+.qr-status.paid { color: var(--success); }
+
+/* =========================================================================
+   BILL PREVIEW (live receipt)
+   ========================================================================= */
+.preview-wrap { position: sticky; top: 16px; }
+.preview-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.preview-actions .badges { display: flex; gap: 6px; }
+.badge {
+  font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; text-transform: uppercase;
+  letter-spacing: .3px;
+}
+.badge.paid { background: var(--brand-gradient); color: var(--theme-button-text); }
+.badge.pending { background: var(--warn-soft); color: var(--warn); }
+.badge.cash { background: var(--accent-soft); color: var(--accent-dark); }
+
+.bill-paper {
+  background: var(--paper); border-radius: var(--radius-md); box-shadow: var(--shadow-md);
+  padding: 26px 26px 20px; max-height: 78vh; overflow-y: auto;
+  border: 1px solid var(--line);
+  font-family: var(--theme-bill-font);
+}
+/* Frozen post-save snapshot used only for Print/Save-as-PDF (see the PRINT
+   media query) - present in the DOM for printing purposes, but pushed
+   off-screen during normal viewing rather than display:none, since a
+   display:none ancestor can't be forced visible again by print CSS.
+   Pushed off-screen VERTICALLY (top), not horizontally - an 800px-wide box
+   sitting at left:-9999px blows the page's horizontal scrollable area out
+   to ~10,000px, and mobile browsers don't reliably respect overflow-x:
+   hidden on body/html against that, letting the whole page be dragged
+   sideways into empty space even though nothing looks different at rest.
+   Pushing it up above the page instead avoids that entirely, since normal
+   vertical scrolling was never restricted in the first place. */
+#printSnapshot { position: absolute; left: 0; top: -9999px; width: 800px; font-family: var(--theme-bill-font); }
+#lookupBillPaper { font-family: var(--theme-bill-font); }
+/* True-to-final-size preview - see fitBillScale_() in app.js. The inner
+   element is always rendered at its real 800px design width (so every font
+   size, margin and the logo all come out at their real proportions, exactly
+   matching print/PDF/email), then visually shrunk with a transform to fit
+   whatever screen it's on - never reflowed into a narrower, cramped layout. */
+.bill-scale-outer { overflow: hidden; }
+.bill-scale-inner { width: 800px; max-width: none; transform-origin: top left; }
+@media print {
+  .bill-scale-outer { overflow: visible; height: auto !important; }
+  .bill-scale-inner { transform: none !important; width: auto; }
+}
+
+.bill-head {
+  display: flex; gap: 10px; align-items: flex-start; flex-wrap: nowrap;
+  border-bottom: 1.5px solid var(--ink); padding-bottom: 8px;
+}
+/* Size is Theme-controlled (Admin Settings -> Theme -> Bill/PDF Design ->
+   Logo Size) - a square badge logo and a wide horizontal wordmark logo
+   both need very different width:height ratios, so this is two independent
+   px values, not one "size". object-fit:contain means the logo is never
+   stretched or cropped to fit, whatever ratio is chosen. */
+.bill-head .bill-logo {
+  width: var(--theme-bill-logo-w);
+  height: var(--theme-bill-logo-h);
+  max-width: var(--theme-bill-logo-w);
+  max-height: var(--theme-bill-logo-h);
+  border-radius: 4px;
+  object-fit: contain;
+  flex-shrink: 0;
+  background: #fff;
+}
+.bill-head-info { flex: 1; min-width: 0; }
+.bill-head .co-name { font-size: 18px; font-weight: 800; margin: 0 0 4px; color: var(--theme-bill-header); }
+.bill-head .co-meta {
+  font-size: 10px; color: var(--theme-bill-header); opacity: .9;
+  line-height: 1.55; margin: 0;
+}
+.bill-head .bill-tag { margin-left: auto; text-align: right; flex-shrink: 0; }
+.bill-head .bill-tag-label {
+  font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .3px;
+}
+.bill-head .bill-tag .big { font-size: 20px; font-weight: 800; letter-spacing: 1px; color: var(--theme-bill-header); }
+
+.bill-meta-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px 28px;
+  font-size: 12px; margin: 14px 0; color: var(--ink-soft);
+}
+.bill-meta-col { display: flex; flex-direction: column; gap: 3px; }
+.bill-meta-grid b { color: var(--ink); }
+
+.bill-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 8px; }
+.bill-table th {
+  text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: .3px;
+  border-bottom: 1.5px solid var(--ink); padding: 6px 4px; color: var(--ink-soft);
+}
+.bill-table td { padding: 7px 4px; border-bottom: 1px solid var(--line); }
+.bill-table td.num, .bill-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.bill-table td.disc { color: var(--theme-bill-discount); font-size: 11.5px; }
+
+.bill-totals { margin-top: 10px; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.bill-totals .row { display: flex; gap: 24px; font-size: 13px; width: 240px; justify-content: space-between; }
+.bill-totals .row.disc { color: var(--theme-bill-discount); font-size: 12px; }
+.bill-totals .grand { font-size: 16px; font-weight: 800; border-top: 2px solid var(--ink); padding-top: 6px; margin-top: 4px; }
+
+.bill-foot {
+  margin-top: 18px; font-size: 11px; color: var(--muted);
+  border-top: 1px dashed var(--line); padding-top: 12px;
+  display: flex; justify-content: space-between; align-items: flex-end; gap: 16px;
+}
+.bill-foot-main { flex: 1; min-width: 0; }
+.bill-foot .version-note { color: var(--warn); font-weight: 700; margin-top: 6px; display: block; }
+.bill-bank {
+  margin-top: 8px; font-size: 10.5px; line-height: 1.55; color: var(--ink-soft);
+}
+.bill-sign { text-align: center; flex-shrink: 0; min-width: 120px; }
+.bill-sign .sign-box {
+  width: 110px; height: 42px; border: 1px solid var(--line); border-radius: 4px;
+  margin: 0 auto 4px; background: #fafafa;
+}
+.bill-sign .sign-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; }
+.bill-empty-hint { text-align: center; color: var(--muted); padding: 90px 20px; font-size: 24px; line-height: 1.4; }
+
+/* =========================================================================
+   DASHBOARD
+   ========================================================================= */
+/* Dashboard page background - was hardcoded white, completely ignoring the
+   Theme tab's "Page Background" setting (Card/Panel Background WAS already
+   correctly reaching the chart/KPI cards via --surface below - only the
+   page itself, behind those cards, was stuck on white). */
+#view-dashboard { background: var(--bg); }
+
+/* -------------------------------------------------------------------------
+   DASHBOARD GRID - 4 KPI cards + 2 chart cards, each with its own
+   independent filter panel (Filter By / Filter Value / Date Range).
+   ------------------------------------------------------------------------- */
+.dash-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 10px; }
+.dash-card.wide { grid-column: 1 / -1; }
+
+.dash-card { display: flex; align-items: stretch; gap: 16px; }
+.dash-card-main { flex: 1; min-width: 0; }
+.dash-card.loading { opacity: .55; pointer-events: none; }
+
+/* -------------------------------------------------------------------------
+   KPI CARDS - bold, colorful "story" tiles with a big badge icon
+   ------------------------------------------------------------------------- */
+.kpi-card {
+  background: linear-gradient(155deg, var(--kpi-color-soft, var(--primary-soft)) 0%, #FFFFFF 62%);
+  border: 1px solid var(--kpi-color-soft, var(--line));
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  box-shadow: var(--shadow-sm);
+  position: relative; overflow: hidden;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.kpi-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+.kpi-card::before {
+  content: ''; position: absolute; right: -26px; top: -26px; width: 90px; height: 90px;
+  border-radius: 50%; background: var(--kpi-color, var(--primary)); opacity: .10;
+}
+.kpi-card .icon {
+  width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center;
+  font-size: 24px; background: var(--kpi-color, var(--primary)); color: #fff;
+  box-shadow: 0 6px 14px -4px var(--kpi-color, var(--primary)); margin-bottom: 12px;
+}
+.kpi-card .label { font-size: 11.5px; font-weight: 700; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .4px; }
+.kpi-card .value { font-size: 30px; font-weight: 800; color: var(--kpi-color, var(--primary-dark)); margin-top: 4px; line-height: 1.15; }
+.kpi-card .value.accent { color: var(--kpi-color, var(--accent-dark)); }
+
+.kpi-card.c-teal   { --kpi-color: var(--kpi-color-c-teal, #D7263D); --kpi-color-soft: var(--kpi-color-soft-c-teal, #FBE1E4); }
+.kpi-card.c-gold   { --kpi-color: var(--kpi-color-c-gold, #C9781C); --kpi-color-soft: var(--kpi-color-soft-c-gold, #FCE8CC); }
+.kpi-card.c-green  { --kpi-color: var(--kpi-color-c-green, #E85D04); --kpi-color-soft: var(--kpi-color-soft-c-green, #FDE7D3); }
+.kpi-card.c-violet { --kpi-color: var(--kpi-color-c-violet, #6C4FB6); --kpi-color-soft: var(--kpi-color-soft-c-violet, #EAE2FA); }
+
+.chart-card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg);
+  padding: 20px; box-shadow: var(--shadow-sm);
+}
+.chart-card .dash-card-main h4 { margin: 0 0 14px; font-size: 13px; color: var(--ink); font-weight: 800; text-transform: uppercase; letter-spacing: .4px; }
+.chart-card .dash-card-main h4::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--brand-gradient); margin-right: 7px; }
+#productBarChart { overflow-x: auto; padding-bottom: 6px; }
+.chart-na {
+  color: var(--muted); font-size: 13px; font-style: italic; padding: 30px 10px; text-align: center;
+  background: #FAFBFB; border-radius: 10px;
+}
+
+/* -------------------------------------------------------------------------
+   PER-CARD CHART FILTER PANEL
+   ------------------------------------------------------------------------- */
+.chart-filter {
+  width: 210px; flex-shrink: 0; display: flex; flex-direction: column; gap: 8px;
+  border-left: 1.5px dashed var(--line); padding-left: 14px;
+}
+.cf-row { display: flex; align-items: center; gap: 8px; }
+.cf-pill {
+  flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px;
+  background: var(--brand-gradient); color: var(--theme-button-text); font-size: 10.5px; font-weight: 700;
+  padding: 5px 10px; border-radius: 999px; white-space: nowrap; letter-spacing: .2px;
+}
+.cf-select, .cf-input, .cf-date {
+  width: 100%; min-width: 0; padding: 7px 9px; border: 1.3px solid var(--line);
+  border-radius: 999px; font-size: 12px; background: #fff; color: var(--ink);
+  font-family: var(--font-body);
+}
+.cf-select:focus, .cf-input:focus, .cf-date:focus {
+  border-color: var(--primary); outline: none; box-shadow: 0 0 0 2px var(--primary-soft);
+}
+.cf-input:disabled { background: #F4F1F0; color: var(--muted); cursor: not-allowed; }
+.cf-input-wrap { position: relative; flex: 1; min-width: 0; }
+.cf-daterow { margin-top: 2px; }
+.cf-date-inputs { display: flex; gap: 6px; }
+.cf-date-inputs .cf-date { font-size: 11px; padding: 6px 6px; }
+.cf-dropdown {
+  position: absolute; top: 100%; left: 0; right: 0; margin-top: 3px;
+  background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md); max-height: 220px; overflow-y: auto; z-index: 60;
+  display: none;
+}
+.cf-dropdown.show { display: block; }
+.cf-clear {
+  display: none; align-self: flex-start; margin-top: 2px;
+  background: var(--danger-soft); color: var(--danger); border: none;
+  font-size: 11px; font-weight: 700; padding: 6px 11px; border-radius: 999px; cursor: pointer;
+}
+.cf-clear:hover { background: var(--danger); color: #fff; }
+.cf-clear.show { display: inline-flex; }
+
+/* =========================================================================
+   ADMIN SETTINGS
+   ========================================================================= */
+.admin-tabs {
+  display: flex; gap: 6px; margin-bottom: 16px; border-bottom: 1px solid var(--line);
+  overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin;
+}
+.admin-tab {
+  flex-shrink: 0; white-space: nowrap;
+  padding: 9px 14px; font-size: 13px; font-weight: 600; color: var(--theme-tab-inactive-text); background: none; border: none;
+  cursor: pointer; border-bottom: 2px solid transparent;
+}
+.admin-tab.active { color: var(--theme-tab-active-text); border-color: transparent; border-bottom: 2.5px solid; border-image: var(--theme-tab-indicator) 1; }
+.admin-pane { display: none; }
+.admin-pane.active { display: block; }
+
+.biller-table, .lookup-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.biller-table th, .biller-table td, .lookup-table th, .lookup-table td {
+  padding: 9px 10px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap;
+}
+.biller-table th, .lookup-table th { font-size: 11px; text-transform: uppercase; color: var(--muted); }
+
+.toggle {
+  width: 38px; height: 21px; border-radius: 999px; background: var(--line); position: relative;
+  border: none; cursor: pointer; transition: background .15s;
+}
+.toggle.on { background: var(--brand-gradient); }
+.toggle::after {
+  content: ''; position: absolute; width: 16px; height: 16px; border-radius: 50%; background: #fff;
+  top: 2.5px; left: 3px; transition: left .15s; box-shadow: 0 1px 2px rgba(0,0,0,.3);
+}
+.toggle.on::after { left: 19px; }
+.toggle-row { display: flex; align-items: center; gap: 8px; height: 38px; }
+.toggle-row-label { font-size: 12.5px; color: var(--ink-soft); font-weight: 600; }
+/* The Find/Edit screen's Tax/Bank/Discount fields sit together in a row
+   that wraps on narrow screens - NOT the same thing as .toggle-row above
+   (that one is just a single switch + its label, fixed at 38px tall; this
+   one holds several full .field blocks side by side, each with their own
+   natural height, so it must NOT be height-constrained). */
+.bill-toggles-wrap { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start; }
+.bill-toggles-wrap .field { margin-bottom: 0; }
+
+.stale-backend-bar {
+  display: none; background: #FFF4E5; border-bottom: 2px solid var(--warn);
+  color: #6B4A08; font-size: 12.5px; line-height: 1.5; padding: 10px 20px;
+}
+.stale-backend-bar.show { display: block; }
+.stale-backend-bar b { color: #4A3105; }
+
+.row-actions { display: flex; gap: 6px; }
+.icon-btn {
+  width: 30px; height: 30px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 8px; border: 1.3px solid var(--line); background: #fff; color: var(--ink-soft);
+  font-size: 14px; cursor: pointer; transition: background .15s, border-color .15s, color .15s;
+}
+.icon-btn-edit:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-soft); }
+.icon-btn-danger { color: var(--danger); border-color: var(--danger-soft); }
+.icon-btn-danger:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+.icon-btn:disabled { opacity: .35; cursor: not-allowed; }
+.icon-btn:disabled:hover { background: #fff; color: var(--ink-soft); border-color: var(--line); }
+
+/* =========================================================================
+   THEME TAB - each option shows a live preview right next to it
+   ========================================================================= */
+.theme-section { margin-bottom: 24px; padding-bottom: 22px; border-bottom: 1px solid var(--line); }
+.theme-section-title { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .4px; color: var(--theme-section-heading); }
+.theme-row { display: flex; gap: 20px; flex-wrap: wrap; align-items: stretch; margin-bottom: 12px; }
+.theme-row-controls { flex: 1 1 320px; display: flex; flex-wrap: wrap; gap: 14px; align-content: flex-start; }
+.theme-row-controls .field { margin-bottom: 0; min-width: 128px; }
+.theme-preview-box {
+  flex: 0 1 240px; min-width: 200px; background: #FAFAF8; border: 1.5px dashed var(--line);
+  border-radius: var(--radius-sm); padding: 14px;
+}
+.theme-preview-label { font-size: 10px; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); margin-bottom: 10px; font-weight: 700; }
+.theme-warning {
+  font-size: 12px; color: var(--warn); background: var(--warn-soft); border-radius: 6px;
+  padding: 8px 10px; margin-top: 10px; display: none; line-height: 1.5;
+}
+.theme-warning.show { display: block; }
+
+/* =========================================================================
+   THEME TAB - color picker inputs
+   ========================================================================= */
+input[type="color"] {
+  width: 52px; height: 40px; padding: 3px; border: 1.3px solid var(--line); border-radius: 8px;
+  cursor: pointer; background: var(--surface);
+}
+input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+input[type="color"]::-webkit-color-swatch { border: none; border-radius: 5px; }
+input[type="color"]::-moz-color-swatch { border: none; border-radius: 5px; }
+.icon-btn { padding: 6px 10px; font-size: 14px; line-height: 1; }
+.biller-table tr.editing td { background: var(--primary-soft); }
+
+/* =========================================================================
+   RUNBOOK / GUIDE STEPS (Data Continuity panel and similar)
+   ========================================================================= */
+code {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 12px; background: rgba(0,0,0,.06); padding: 1px 5px; border-radius: 4px;
+}
+details > summary { list-style: none; }
+details > summary::-webkit-details-marker { display: none; }
+details > summary::before { content: '\25B8  '; display: inline; }
+details[open] > summary::before { content: '\25BE  '; }
+details > summary:hover { color: var(--primary); }
+
+/* =========================================================================
+   REPORTS
+   ========================================================================= */
+.report-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; position: relative; }
+.report-toolbar-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.report-row-count { font-size: 12.5px; color: var(--muted); font-weight: 600; white-space: nowrap; }
+
+.report-columns-wrap { position: relative; }
+.report-columns-popover {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--radius-sm); box-shadow: 0 12px 32px rgba(0,0,0,.14);
+  padding: 14px; width: 250px;
+}
+.report-columns-list { display: flex; flex-direction: column; gap: 9px; max-height: 260px; overflow-y: auto; margin-bottom: 12px; padding-right: 4px; }
+.report-columns-list label { display: flex; align-items: center; gap: 9px; font-size: 13px; cursor: pointer; color: var(--ink); }
+.report-columns-list input[type="checkbox"] { width: 15px; height: 15px; flex-shrink: 0; }
+.report-columns-actions { display: flex; gap: 8px; justify-content: flex-end; border-top: 1px solid var(--line); padding-top: 10px; }
+
+.report-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.report-table { width: auto; min-width: 100%; }
+.report-table th, .report-table td {
+  white-space: nowrap;
+  border-right: 1px solid var(--line); /* column separators - same thin grey as the row lines, so the grid reads clearly in both directions */
+}
+.report-table th:last-child, .report-table td:last-child { border-right: none; }
+.report-table thead tr:first-child th { position: sticky; top: 0; background: var(--surface); z-index: 2; }
+.report-filter-row th { position: sticky; top: 33px; background: var(--surface-2, #FAFAF8); z-index: 2; padding: 6px 8px; border-bottom: 2px solid var(--line); }
+
+.report-pk-col { font-weight: 700; color: var(--primary-dark); background: var(--primary-soft); }
+
+.report-filter-input {
+  width: 100%; box-sizing: border-box; font-size: 12px; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--line);
+}
+.report-filter-cell-num, .report-filter-cell-date { display: flex; gap: 4px; }
+.report-filter-cell-num select {
+  flex: 0 0 46px; font-size: 11px; padding: 5px 2px; border-radius: 6px; border: 1px solid var(--line);
+}
+.report-filter-cell-num input { flex: 1; min-width: 0; font-size: 12px; padding: 6px 6px; border-radius: 6px; border: 1px solid var(--line); }
+.report-filter-cell-date input { flex: 1; min-width: 0; font-size: 11px; padding: 5px 4px; border-radius: 6px; border: 1px solid var(--line); }
+
+.report-chip {
+  font-size: 10.5px; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: var(--line);
+  color: var(--ink-soft); display: inline-block;
+}
+.report-chip.pos { background: var(--success-soft); color: var(--success); }
+.report-chip.neg { background: var(--danger-soft); color: var(--danger); }
+.report-na { color: var(--muted); }
+
+.report-totals-row td {
+  font-weight: 700; font-size: 12.5px; background: var(--primary-soft); color: var(--primary-dark);
+  border-top: 2px solid var(--primary); padding: 8px; white-space: nowrap;
+}
+.report-totals-label { text-align: left; }
+.report-totals-note { font-weight: 400; font-size: 10.5px; opacity: .75; }
+
+/* =========================================================================
+   INVENTORY VIEW
+   ========================================================================= */
+.inv-kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px; }
+.inv-toolbar { display: flex; gap: 10px; margin-bottom: 14px; }
+.inv-toolbar input { max-width: 320px; }
+.inv-table td { vertical-align: middle; }
+.inv-stock-cell { font-weight: 700; }
+.inv-status-badge {
+  font-size: 10.5px; font-weight: 700; padding: 3px 10px; border-radius: 999px; text-transform: uppercase;
+  letter-spacing: .3px; display: inline-block;
+}
+.inv-status-badge.ok  { background: var(--success-soft); color: var(--success); }
+.inv-status-badge.low { background: var(--warn-soft); color: var(--warn); }
+.inv-status-badge.out { background: var(--danger-soft); color: var(--danger); }
+.inv-status-badge.na  { background: var(--line); color: var(--muted); }
+.inv-edit-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.inv-edit-row input.inv-stock-input { width: 74px; padding: 6px 8px; }
+.inv-edit-row input.inv-threshold-input { width: 60px; padding: 6px 8px; }
+.inv-step-btn {
+  width: 28px; height: 28px; border-radius: var(--radius-sm); border: 1px solid var(--line);
+  background: var(--surface); cursor: pointer; font-weight: 700; color: var(--ink-soft); line-height: 1;
+}
+.inv-step-btn:hover { background: var(--primary-soft); color: var(--primary-dark); border-color: var(--primary-soft); }
+.inv-track-btn { font-size: 11.5px; }
+.inv-log-row { font-size: 12.5px; padding: 7px 0; border-bottom: 1px dashed var(--line); display: flex; justify-content: space-between; gap: 10px; color: var(--ink-soft); }
+.inv-log-row:last-child { border-bottom: none; }
+.inv-log-row .inv-log-delta.pos { color: var(--success); font-weight: 700; }
+.inv-log-row .inv-log-delta.neg { color: var(--danger); font-weight: 700; }
+.inv-log-empty { color: var(--muted); font-size: 12.5px; padding: 6px 0; }
+
+/* =========================================================================
+   LOOKUP / EDIT VIEW
+   ========================================================================= */
+.lookup-search { display: flex; gap: 10px; max-width: 480px; margin-bottom: 20px; }
+.lookup-search input { flex: 1; }
+.superadmin-gate {
+  background: var(--theme-gate-bg); border: 1px dashed var(--theme-gate-border); padding: 14px; border-radius: var(--radius-md);
+  margin-top: 16px;
+}
+.superadmin-gate h4 { margin: 0 0 10px; font-size: 13px; color: var(--theme-gate-title); }
+
+/* =========================================================================
+   DATABASE(S) STATUS - Admin Settings -> Shop Details -> Data Continuity.
+   One card per database (active + every archive): a colored name pill,
+   an Active/Archived badge, a capacity progress bar, row counts, and (on
+   the active database only) the Next ID predictions.
+   ========================================================================= */
+.ds-panel { background: var(--surface); border-radius: var(--radius-md); padding: 16px; }
+.ds-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+.ds-panel-head h4 { margin: 0; font-size: 14px; font-weight: 800; color: var(--ink); }
+.ds-loading { font-size: 13px; color: var(--muted); padding: 10px 2px; }
+.ds-db-list { display: flex; flex-direction: column; gap: 18px; }
+.ds-db-card {
+  border-radius: var(--radius-md); padding: 18px 20px 16px; border: 1px solid var(--line);
+  background: var(--bg);
+}
+.ds-db-card.ds-db-error { color: var(--danger); font-size: 13px; }
+.ds-db-top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+.ds-db-name-pill {
+  display: inline-block; padding: 10px 30px; border-radius: 999px; font-size: 19px; font-weight: 800;
+  color: #fff; background: var(--brand-gradient); box-shadow: var(--shadow-sm);
+}
+.ds-db-name-pill.ds-db-pill-muted { background: linear-gradient(135deg, #9aa5a3 0%, #c3cac8 100%); }
+.ds-db-badge {
+  font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px;
+  padding: 5px 16px; border-radius: 999px;
+}
+.ds-db-badge-active { background: var(--danger-soft); color: var(--danger); }
+.ds-db-badge-archived { background: var(--line); color: var(--muted); }
+.ds-db-sheetname { font-size: 12.5px; color: var(--ink-soft); margin-bottom: 14px; }
+.ds-db-sheetname a { font-weight: 700; }
+/* Pill-outlined, segmented capacity bar - mirrors the rough sketch rather
+   than a plain smooth gradient fill. */
+.ds-db-progress { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.ds-db-progress-bar {
+  flex: 1; height: 20px; border-radius: 999px; border: 2px solid var(--info, #4a90d9);
+  padding: 3px; box-sizing: border-box;
+}
+.ds-db-progress-fill {
+  height: 100%; border-radius: 999px;
+  background-image: linear-gradient(90deg, var(--info, #4a90d9) 0%, var(--info, #4a90d9) 78%, transparent 78%, transparent 100%),
+                     repeating-linear-gradient(90deg, var(--info, #4a90d9) 0 16px, rgba(255,255,255,.55) 16px 19px);
+  transition: width .4s ease;
+}
+.ds-db-progress-text { font-size: 13px; font-weight: 700; color: var(--ink-soft); white-space: nowrap; }
+/* Plain two-column label:value rows - "Bills 1" / "Next Bills SJP-XXXX" -
+   not individually boxed, matching the rough sketch exactly. */
+.ds-db-rows { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; }
+.ds-db-rows.ds-db-rows-single { grid-template-columns: 1fr; }
+.ds-db-row { display: flex; justify-content: space-between; gap: 10px; font-size: 13.5px; }
+.ds-db-row-label { color: var(--ink); }
+.ds-db-row-value { color: var(--ink); font-weight: 800; }
+.ds-db-unreachable { font-size: 12.5px; color: var(--danger); }
+.ds-actions { display: flex; gap: 10px; margin-top: 16px; }
+.ds-danger-btn { color: var(--danger) !important; border-color: var(--danger) !important; }
+.ds-danger-btn:hover { background: var(--danger-soft) !important; }
+.ds-note { font-size: 12px; color: var(--muted); line-height: 1.6; margin: 16px 0 0; }
+
+/* =========================================================================
+   TOASTS / MODALS
+   ========================================================================= */
+.toast-wrap { position: fixed; bottom: 20px; right: 20px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  background: var(--ink); color: #fff; padding: 12px 16px; border-radius: var(--radius-sm);
+  font-size: 13.5px; box-shadow: var(--shadow-md); min-width: 220px; animation: toast-in .18s ease;
+}
+.toast.success { background: var(--primary-dark); }
+.toast.error { background: var(--danger); }
+@keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(10,20,18,0.5); display: none;
+  align-items: center; justify-content: center; z-index: 150; padding: 16px;
+}
+.modal-overlay.show { display: flex; }
+.modal-box {
+  background: var(--surface); border-radius: var(--radius-lg); padding: 24px; width: 100%; max-width: 420px;
+  box-shadow: var(--shadow-lg); max-height: 88vh; overflow-y: auto;
+}
+.modal-box h3 { margin-top: 0; }
+.modal-box-lg { max-width: 680px; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; flex-wrap: wrap; }
+.email-preview-frame-wrap {
+  border: 1px solid var(--line); border-radius: var(--radius-md); overflow: hidden;
+  background: #eef3f6; height: 60vh; min-height: 360px;
+}
+#emailPreviewFrame { width: 100%; height: 100%; border: 0; display: block; }
+
+/* =========================================================================
+   RESPONSIVE - TABLET
+   ========================================================================= */
+@media (max-width: 1080px) {
+  .billing-grid { grid-template-columns: 1fr; }
+  .preview-wrap { position: static; }
+  .bill-paper { max-height: none; }
+}
+
+@media (max-width: 900px) {
+  .sidebar { position: fixed; left: -240px; width: 232px; transition: left .2s ease; box-shadow: var(--shadow-lg); }
+  .sidebar.open { left: 0; }
+  .sidebar .nav-label,
+  .sidebar .sidebar-brand .brand-text,
+  .sidebar .sidebar-footer { opacity: 1; pointer-events: auto; }
+  .topbar { display: flex; }
+  .view { padding: 16px; }
+  .form-grid { grid-template-columns: 1fr; }
+  .biller-box { grid-template-columns: 1fr; }
+  .dash-grid { grid-template-columns: 1fr; }
+  .dash-card { flex-direction: column; }
+  .inv-kpi-grid { grid-template-columns: 1fr; }
+  .chart-filter { width: 100%; border-left: none; border-top: 1.5px dashed var(--line); padding-left: 0; padding-top: 12px; }
+  .cf-date-inputs { max-width: 260px; }
+}
+
+@media (max-width: 640px) {
+  .login-card { padding: 30px 20px 24px; }
+  .bill-head { flex-wrap: wrap; }
+  .bill-head .bill-tag { margin-left: 0; text-align: left; }
+  .totals-strip { justify-content: space-between; gap: 12px; }
+  .view-header { flex-direction: column; align-items: flex-start; }
+  /* .biller-table / .lookup-table now always sit inside a .table-scroll
+     wrapper (added directly in the markup) so they scroll horizontally at
+     every width, not just below this breakpoint - nothing extra needed here. */
+  /* Product name always gets its own full-width line at this width; the
+     remaining fields (Price / Qty / Discount % / Total / remove) wrap
+     underneath, as many per line as comfortably fit - see the base
+     .product-row flexbox rules above. */
+  .product-row .autocomplete-wrap { flex-basis: 100%; }
+}
+
+/* -------------------------------------------------------------------------
+   RESPONSIVE - PHONES (professional wrap/flex pass: every multi-button row
+   and multi-field row introduced across this app - Share Bill, Database(s)
+   Status, Theme tab controls, the email preview modal - degrades to a
+   clean single column here instead of squeezing or overlapping.
+   ------------------------------------------------------------------------- */
+@media (max-width: 600px) {
+  .modal-box { padding: 18px; }
+  .modal-box-lg { max-width: 100%; }
+  .modal-actions { flex-direction: column-reverse; align-items: stretch; }
+  .modal-actions .btn { width: 100%; }
+  .email-preview-frame-wrap { height: 50vh; min-height: 280px; }
+
+  .ds-panel-head { flex-wrap: wrap; }
+  .ds-actions { flex-direction: column; }
+  .ds-actions .btn { width: 100%; }
+  .ds-db-top { align-items: flex-start; }
+  .ds-db-name-pill { font-size: 13px; padding: 7px 16px; }
+
+  .theme-row { gap: 12px; }
+  .theme-row-controls { gap: 12px; }
+  .theme-row-controls .field { flex: 1 1 100%; min-width: 0; }
+  .theme-preview-box { flex: 1 1 100%; }
+  .theme-checkbox-row { gap: 4px 12px; }
+
+  #theme_billLogoWidth, #theme_billLogoHeight { width: 100%; max-width: 100px; }
+
+  .field-label-hint { display: block; margin-top: 2px; }
+}
+
+/* -------------------------------------------------------------------------
+   RESPONSIVE - NARROW PHONES (350-380px and similar)
+   ------------------------------------------------------------------------- */
+@media (max-width: 460px) {
+  .bill-table { font-size: 11px; }
+  .bill-paper { padding: 16px 14px 14px; }
+  .biller-table, .lookup-table { font-size: 11.5px; }
+
+  .view { padding: 12px; }
+  .view-header h2 { font-size: 17px; }
+  .view-header p { font-size: 12px; }
+
+  /* Prevent iOS Safari auto-zoom-on-focus by keeping inputs at >=16px */
+  .field input, .field select, .field textarea,
+  .product-row input,
+  .cf-select, .cf-input, .cf-date, .lookup-search input { font-size: 16px; }
+
+  .panel { padding: 14px; }
+  .form-grid { gap: 12px 10px; }
+
+  .product-row { gap: 8px; padding: 8px 0; }
+  .product-row > div { flex: 1 1 78px; }
+  .biller-box { padding: 12px; gap: 8px; }
+
+  .login-card { padding: 26px 16px 20px; }
+  .login-logo { width: 60px; height: 60px; }
+
+  .sidebar.open { width: 78vw; max-width: 260px; }
+
+  .lookup-search { flex-direction: column; }
+  .lookup-search input, .lookup-search button { width: 100%; }
+
+  .kpi-card, .chart-card { padding: 14px; }
+  .chart-filter { gap: 10px; }
+  .cf-pill { font-size: 10px; padding: 5px 9px; }
+  .cf-date-inputs { max-width: none; }
+  .kpi-card .icon { width: 40px; height: 40px; font-size: 20px; }
+  .kpi-card .value { font-size: 24px; }
+
+  .modal-box { padding: 18px; }
+  .biller-box { grid-template-columns: 1fr; }
+}
+
+/* =========================================================================
+   PRINT (used for "Download PDF" via window.print -> Save as PDF)
+   Multi-page: table header repeats; page numbers when content spans pages.
+
+   IMPORTANT: which element prints is controlled explicitly via
+   data-print-target on <body> (set in JS right before window.print()),
+   NOT just "any .bill-paper" - the Create Bill screen has both a LIVE
+   preview (#billPaper, which resets to a blank next bill a moment after
+   saving) and a FROZEN snapshot of what was actually saved (#printSnapshot).
+   Printing always targets whichever id data-print-target names, so a
+   delayed click on Print/Save-as-PDF can never print the wrong bill.
+   ========================================================================= */
+@media print {
+  html, body { overflow: visible !important; height: auto !important; }
+  body * { visibility: hidden; }
+
+  body[data-print-target="printSnapshot"] #printSnapshot,
+  body[data-print-target="printSnapshot"] #printSnapshot *,
+  body[data-print-target="lookupBillPaper"] #lookupBillPaper,
+  body[data-print-target="lookupBillPaper"] #lookupBillPaper * {
+    visibility: visible;
+  }
+  body[data-print-target="printSnapshot"] #printSnapshot,
+  body[data-print-target="lookupBillPaper"] #lookupBillPaper {
+    position: absolute; left: 0; top: 0; width: 100%;
+    box-shadow: none !important; border: none !important; border-radius: 0 !important;
+    max-height: none !important; height: auto !important; overflow: visible !important;
+    padding: 3mm 4mm 5mm 4mm !important;
+  }
+  /* Defensive: no descendant of the printed bill should ever carry its own
+     scrollbar into the printed page, even if something upstream forgot to
+     reset it. */
+  body[data-print-target="printSnapshot"] #printSnapshot *,
+  body[data-print-target="lookupBillPaper"] #lookupBillPaper * {
+    max-height: none !important; overflow: visible !important;
+  }
+  .preview-actions, .print-hide { display: none !important; }
+
+  .bill-head {
+    flex-wrap: nowrap !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+    padding-bottom: 6px !important;
+    margin: 0 !important;
+  }
+  /* Logo size, and every bill font size, are intentionally NOT overridden
+     here anymore - printing (and Save-as-PDF, which is the same browser
+     print pipeline) now renders the bill at exactly the same type scale and
+     logo size as the on-screen preview and the emailed PDF, so there is one
+     single bill design everywhere it's shown, not a shrunk-down print-only
+     variant. */
+  .bill-meta-grid { margin: 8px 0 !important; }
+
+  .bill-table thead { display: table-header-group; }
+  .bill-table tr { page-break-inside: avoid; }
+  .bill-totals, .bill-foot { page-break-inside: avoid; }
+
+  @page {
+    size: A4;
+    margin: 5mm 5mm 8mm 5mm;
+    @bottom-center {
+      content: "Page " counter(page) " of " counter(pages);
+      font-size: 9px;
+      color: #888;
+    }
+  }
+}
+
+/* =========================================================================
+   LETTERPAD  (new, additive only)
+
+   Everything here is namespaced under .lp-* and #lp* and is used ONLY by
+   the Letterpad view - no existing selector is modified or overridden.
+
+   NOTE: the A4 sheet itself (.lp-sheet / .lp-band / .lp-body / .lp-foot-*)
+   is deliberately NOT styled here. That CSS lives in LP_PAPER_CSS in app.js
+   and is injected at runtime, because the exact same stylesheet text is also
+   written into the print iframe - keeping "what you see" and "what you
+   print" as one single source of truth instead of two copies that can drift.
+   ========================================================================= */
+
+/* ---- "nothing is saved" warning strip ---- */
+.lp-warning-strip {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: #ff7676; border: 1px solid #f08c8c; border-left: 4px solid #e00000;
+  color: #ffffff; border-radius: var(--radius-md);
+  padding: 11px 14px; margin-bottom: 14px;
+  font-size: 12.5px; line-height: 1.55;
+}
+.lp-warning-icon { flex: 0 0 auto; font-size: 14px; line-height: 1.4; }
+
+/* ---- Toolbar ---- */
+.lp-toolbar {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 10px 12px 8px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,.06));
+  position: sticky; top: 0; z-index: 20;
+}
+.lp-tb-row {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: 8px; padding: 3px 0;
+}
+.lp-tb-row + .lp-tb-row { border-top: 1px dashed var(--line); margin-top: 3px; padding-top: 7px; }
+.lp-tb-group {
+  display: flex; align-items: center; gap: 4px;
+  padding-right: 8px; border-right: 1px solid var(--line);
+}
+.lp-tb-group:last-child { border-right: 0; padding-right: 0; }
+.lp-tb-group-right { margin-left: auto; border-right: 0; padding-right: 0; gap: 8px; }
+
+.lp-tb-btn {
+  min-width: 32px; height: 32px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  padding: 0 7px;
+  font-size: 13px; font-family: inherit; line-height: 1;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid transparent; border-radius: 6px;
+  cursor: pointer;
+  transition: background .12s ease, border-color .12s ease;
+}
+.lp-tb-btn:hover { background: var(--theme-outline-hover-bg, rgba(0,0,0,.06)); border-color: var(--line); }
+.lp-tb-btn.is-active { background: var(--brand-gradient); color: var(--theme-button-text); border-color: transparent; }
+.lp-tb-btn.lp-tb-wide { min-width: auto; font-size: 12px; }
+
+.lp-tb-select {
+  height: 32px; padding: 0 6px;
+  font-size: 12.5px; font-family: inherit; color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line); border-radius: 6px;
+  cursor: pointer;
+}
+.lp-tb-select:focus { outline: 2px solid var(--theme-outline-border, #2778b7); outline-offset: -1px; }
+
+.lp-tb-inline-label {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12.5px; color: var(--ink-soft); cursor: pointer; white-space: nowrap;
+}
+.lp-tb-inline-label input { cursor: pointer; }
+
+/* Colour pickers - the native swatch is hidden behind a styled tile */
+.lp-tb-color { position: relative; display: inline-flex; cursor: pointer; }
+.lp-tb-color input[type="color"] {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  opacity: 0; cursor: pointer; border: 0; padding: 0;
+}
+.lp-tb-color-swatch {
+  width: 32px; height: 32px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line); border-radius: 6px;
+  font-size: 12px; font-weight: 700; color: #fff;
+  text-shadow: 0 0 2px rgba(0,0,0,.55);
+  pointer-events: none;
+}
+
+/* Little alignment glyphs drawn in CSS so no icon font is needed */
+.lp-al { display: inline-block; width: 14px; height: 10px; position: relative; }
+.lp-al::before, .lp-al::after {
+  content: ""; position: absolute; left: 0; right: 0; height: 2px;
+  background: currentColor; border-radius: 1px;
+}
+.lp-al::before { top: 1px; }
+.lp-al::after { bottom: 1px; }
+.lp-al-l { box-shadow: inset 0 0 0 0 transparent; }
+.lp-al-l::after { right: 4px; }
+.lp-al-c::after { left: 3px; right: 3px; }
+.lp-al-r::after { left: 4px; }
+.lp-al-j::after { left: 0; right: 0; }
+
+.lp-tb-status {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin-top: 7px; padding-top: 6px;
+  border-top: 1px solid var(--line);
+  font-size: 11.5px; color: var(--ink-soft);
+}
+.lp-tb-status-dot { opacity: .5; }
+
+/* ---- Stage : the grey desk the A4 sheet sits on ----
+   overflow-x lives HERE rather than on the page, because html/body already
+   carry overflow-x:hidden app-wide. The sheet is a fixed 210mm and must be
+   allowed to scroll sideways on a narrow screen rather than be squeezed -
+   squeezing it would make the on-screen layout a lie about what prints. */
+.lp-stage {
+  background: #5a6570;
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+}
+.lp-zoom { width: max-content; margin: 0 auto; }
+.lp-stage .lp-sheet {
+  box-shadow: 0 6px 24px rgba(0,0,0,.35);
+  margin: 0 auto;
+}
+
+/* ---- Editable body : placeholder + page-break guides ---- */
+.lp-body-wrap { position: relative; flex: 1 1 auto; width: 100%; }
+.lp-body { position: relative; z-index: 1; }
+.lp-body:focus { outline: none; }
+.lp-body.lp-is-empty::before {
+  content: attr(data-lp-placeholder);
+  position: absolute;
+  top: 8mm; left: 16mm;
+  color: #a9b0b6;
+  pointer-events: none;
+}
+
+.lp-guides { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+.lp-guide {
+  position: absolute; left: 0; right: 0;
+  border-top: 1px dashed #c23b3b;
+}
+.lp-guide span {
+  position: absolute; right: 4mm; top: -9px;
+  background: #c23b3b; color: #fff;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 8px; line-height: 1;
+  padding: 3px 6px; border-radius: 3px;
+  white-space: nowrap;
+}
+
+/* On a phone the toolbar stops sticking - a sticky 3-row toolbar would eat
+   most of the screen. Nothing about the SHEET changes at any width. */
+@media (max-width: 720px) {
+  .lp-toolbar { position: static; }
+  .lp-stage { padding: 12px; }
+  /* This group (zoom select + Reset + Print/Save) is a flex row with no
+     wrap of its own. On a phone it doesn't fit on one line and was never
+     told it's allowed to break - it just bled off the right edge of the
+     screen instead of folding onto a second line like every other toolbar
+     group already does. Giving it a real width (so the browser knows how
+     much room it actually has) plus its own wrap fixes that, with no
+     effect at desktop widths where it fits on one line anyway. */
+  .lp-tb-group-right {
+    margin-left: 0;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+}
+
+/* The on-screen letterpad is never what gets printed - printing goes through
+   its own iframe (see lpPrint_ in app.js). This just makes sure a stray
+   Ctrl+P can't drop a half-rendered sheet into the app's own print output. */
+@media print {
+  #view-letterpad { display: none !important; }
+}
+
+/* =========================================================================
+   NEW FOR THIS APP - everything below is specific to the Physiotherapy
+   Assessment Form and not present in the billing app.
+   ========================================================================= */
+
+.login-security-note { font-size: 11px; color: var(--muted); margin-top: 14px; }
+.req { color: var(--danger); }
+.field-hint-inline { color: var(--muted); font-weight: 500; text-transform: none; font-size: 0.9em; }
+
+.age-sex-row { display: flex; gap: 8px; }
+.age-sex-row input { flex: 1; }
+.age-sex-row select { flex: 1.4; }
+
+.issue-select-row { display: flex; gap: 8px; }
+.issue-select-row select { flex: 1; }
+
+/* ---------- VAS pain scale ---------- */
+.vas-wrap { margin-top: 6px; }
+.vas-wrap input[type=range] { width: 100%; accent-color: var(--primary); margin: 8px 0; }
+.vas-scale { display: flex; justify-content: space-between; max-width: 480px; }
+.vas-scale span {
+  width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--line);
+  display: flex; align-items: center; justify-content: center; font-size: 11.5px; color: var(--ink-soft);
+}
+.vas-scale span.active { background: var(--danger); color: #fff; border-color: var(--danger); font-weight: 700; }
+
+/* ---------- Past Medical History ---------- */
+.pmh-checks { display: flex; gap: 22px; flex-wrap: wrap; margin-bottom: 12px; }
+.pmh-check { display: flex; align-items: center; gap: 7px; font-size: 13.5px; font-weight: 600; color: var(--ink); cursor: pointer; }
+.pmh-check input { width: 17px; height: 17px; accent-color: var(--primary); }
+
+/* ---------- ROM / MMT editable tables ---------- */
+.rom-edit-table { border-collapse: collapse; width: 100%; font-size: 12.5px; min-width: 560px; }
+.rom-edit-table th { background: var(--primary-soft); color: var(--ink); text-align: left; padding: 7px 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .3px; }
+.rom-edit-table td { border: 1px solid var(--line); padding: 4px 6px; }
+.rom-edit-table td.rom-joint-cell { font-weight: 700; background: var(--bg); vertical-align: middle; }
+.rom-edit-table input { width: 64px; padding: 5px 6px; border: 1px solid var(--line); border-radius: 5px; font-size: 12.5px; text-align: center; }
+
+/* ---------- Body diagrams (interactive pain map) ---------- */
+.mark-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.mark-tool {
+  border: 1.5px solid var(--line); background: var(--surface); border-radius: 999px;
+  padding: 7px 14px; font-size: 12.5px; font-weight: 600; cursor: pointer; color: var(--ink-soft);
+}
+.mark-tool.active { border-color: var(--primary); background: var(--primary-soft); color: var(--primary-dark); }
+.mark-tool-custom { display: flex; align-items: center; gap: 6px; }
+.mark-tool-custom input[type=color] { width: 32px; height: 32px; border: none; border-radius: 6px; padding: 0; cursor: pointer; }
+
+.body-diagrams { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+.body-view { width: 150px; text-align: center; }
+.body-view-label { font-size: 11px; font-weight: 700; color: var(--ink-soft); margin-top: 4px; text-transform: uppercase; letter-spacing: .3px; }
+.body-svg-holder { border: 1.5px solid var(--line); border-radius: var(--radius-md); background: #fcfcfb; cursor: crosshair; }
+.body-svg-holder svg { width: 100%; height: auto; display: block; }
+.body-mark-dot { cursor: pointer; }
+.body-legend { display: flex; gap: 16px; justify-content: center; font-size: 12px; margin-top: 10px; }
+.body-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+
+/* ---------- Special tests / goals / plan dynamic rows ---------- */
+.dyn-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+.dyn-row input { flex: 1; padding: 9px 11px; border: 1.5px solid var(--line); border-radius: var(--radius-sm); font-size: 13.5px; }
+.dyn-row .remove-row-btn {
+  flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--danger-soft);
+  background: var(--danger-soft); color: var(--danger); font-weight: 700; cursor: pointer; font-size: 15px;
+  display: flex; align-items: center; justify-content: center;
+}
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+@media (max-width: 760px) { .two-col { grid-template-columns: 1fr; } }
+
+/* ---------- Patient match hint ---------- */
+#patientMatchHint.match-found { color: var(--success); font-weight: 600; }
+#patientMatchHint.match-new { color: var(--muted); }
+
+/* ---------- Printed / previewed assessment document ---------- */
+.doc-scale-outer { overflow: hidden; }
+.doc-scale-inner { width: 800px; max-width: none; transform-origin: top left; }
+@media print { .doc-scale-outer { overflow: visible; height: auto !important; } .doc-scale-inner { transform: none !important; width: auto; } }
+
+.doc-paper {
+  background: var(--paper); border-radius: var(--radius-md); box-shadow: var(--shadow-md);
+  padding: 24px 26px; max-height: 80vh; overflow-y: auto; border: 1px solid var(--line);
+  font-family: var(--theme-bill-font);
+}
+#printSnapshot { position: absolute; left: 0; top: -9999px; width: 800px; font-family: var(--theme-bill-font); }
+
+.doc-header { display: flex; gap: 14px; align-items: center; border-bottom: 2px solid var(--theme-bill-header); padding-bottom: 8px; margin-bottom: 10px; }
+.doc-logo { width: var(--theme-bill-logo-w); height: var(--theme-bill-logo-h); object-fit: contain; border-radius: 4px; background: #fff; flex-shrink: 0; }
+.doc-company-name { font-size: 19px; font-weight: 800; color: var(--theme-bill-header); }
+.doc-company-info { font-size: 11px; color: var(--muted); line-height: 1.5; }
+.doc-title-bar { color: #fff; text-align: center; font-weight: 800; letter-spacing: 1px; padding: 6px; font-size: 13px; border-radius: 5px; margin-bottom: 12px; background: var(--theme-bill-header); }
+
+.section-band { padding: 5px 10px; font-weight: 800; font-size: 12.5px; margin: 16px 0 8px; border-radius: 5px; background: var(--primary-soft); color: var(--ink); }
+.doc-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 22px; }
+.doc-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px 22px; }
+.doc-grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 5px 22px; }
+.doc-field { font-size: 12.5px; padding: 3px 0; }
+.doc-field .fl-label { font-weight: 800; }
+.doc-list { margin: 3px 0 10px; padding-left: 18px; font-size: 12.5px; }
+.doc-notes-box { border: 1px solid var(--line); min-height: 90px; padding: 8px 10px; font-size: 12.5px; border-radius: 6px; white-space: pre-wrap; }
+.doc-footer-row { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 24px; }
+.doc-sig-block { text-align: center; }
+.doc-sig-img { max-width: 150px; max-height: 60px; display: block; margin: 0 auto 6px; }
+.doc-sig-line { width: 150px; border-bottom: 1px solid var(--ink); height: 46px; }
+.doc-sig-caption { font-size: 11px; }
+.doc-record-ids { font-size: 9.5px; color: var(--muted); margin-top: 16px; }
+.doc-tagline { text-align: center; font-style: italic; color: var(--theme-bill-header); font-size: 11px; margin-top: 6px; }
+.doc-page-break { page-break-before: always; margin-top: 22px; padding-top: 16px; border-top: 2px dashed var(--line); }
+
+table.doc-rom-table, table.doc-special-table { border-collapse: collapse; width: 100%; font-size: 11.5px; margin-bottom: 10px; }
+table.doc-rom-table th, table.doc-rom-table td, table.doc-special-table th, table.doc-special-table td { border: 1px solid var(--line); padding: 4px 7px; text-align: left; }
+table.doc-rom-table .num, table.doc-special-table .num { text-align: center; width: 70px; }
+.doc-rom-joint { font-weight: 700; background: var(--bg); vertical-align: middle; }
+
+.doc-body-diagrams { display: flex; gap: 8px; justify-content: space-between; margin-bottom: 8px; }
+.doc-body-view { text-align: center; width: 23%; }
+.doc-body-view svg { width: 100%; height: auto; }
+.doc-body-view-label { font-size: 9.5px; font-weight: 700; color: var(--muted); }
+
+.preview-actions-buttons { display: flex; gap: 8px; }
+.badge-ok { background: var(--success-soft); color: var(--success); }
+
+/* ---------- Lookup / Find-Edit results ---------- */
+.lookup-results { margin-top: 16px; }
+.lookup-result-row {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-md);
+  padding: 14px 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
+}
+.lookup-result-meta { font-size: 12.5px; color: var(--muted); }
+.lookup-result-meta b { color: var(--ink); }
+
+/* ---------- Admin: issues list, theme grid, database, signature ---------- */
+.issue-add-row { display: flex; gap: 8px; margin-bottom: 14px; max-width: 420px; }
+.issue-add-row input { flex: 1; padding: 9px 11px; border: 1.5px solid var(--line); border-radius: var(--radius-sm); }
+
+.theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+.theme-item { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px 12px; }
+.theme-item label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .3px; }
+.theme-item input[type=color] { width: 100%; height: 34px; border: none; border-radius: 6px; padding: 0; cursor: pointer; }
+.theme-item select, .theme-item input[type=text] { width: 100%; padding: 8px 9px; border: 1px solid var(--line); border-radius: 6px; }
+
+.sig-upload-row { display: flex; align-items: center; gap: 16px; margin: 10px 0; }
+.sig-preview { width: 150px; height: 60px; object-fit: contain; border: 1px dashed var(--line); border-radius: 6px; background: #fff; }
+
+.dash-filter-bar { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.dash-filter-bar .field { margin-bottom: 0; }
+
+/* ---------- Toast host ---------- */
+.toast-host { position: fixed; top: 18px; right: 18px; z-index: 900; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  background: var(--ink); color: #fff; padding: 11px 16px; border-radius: var(--radius-sm);
+  font-size: 13px; box-shadow: var(--shadow-md); opacity: 0; transform: translateY(-8px); transition: all .2s ease;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.success { background: var(--success); } .toast.error { background: var(--danger); }
+
+.modal-box-lg { max-width: 700px; }
+.email-preview-frame { width: 100%; height: 420px; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+
+/* ---------- Print rules for the assessment document ---------- */
+@media print {
+  body[data-print-target="printSnapshot"] #printSnapshot,
+  body[data-print-target="printSnapshot"] #printSnapshot * { visibility: visible; }
+  body[data-print-target="printSnapshot"] #printSnapshot {
+    position: absolute; left: 0; top: 0; width: 100%;
+    box-shadow: none !important; border: none !important; border-radius: 0 !important;
+    max-height: none !important; height: auto !important; overflow: visible !important;
+    padding: 3mm 4mm 5mm 4mm !important;
+  }
+  body[data-print-target="printSnapshot"] #printSnapshot * { max-height: none !important; overflow: visible !important; }
+  table.doc-rom-table thead, table.doc-special-table thead { display: table-header-group; }
+  table.doc-rom-table tr, table.doc-special-table tr { page-break-inside: avoid; }
+  .doc-footer-row { page-break-inside: avoid; }
+}

@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>SJ Physiotherapy - Patient Assessment &amp; Records System</title>
+<link rel="icon" href="https://sjphysiotherapy.in/LOGO/favicon.png" type="image/png">
+<link rel="stylesheet" href="style.css?v=20260917-01">
+</head>
+<body>
+
+<!-- ===================== LOGIN SCREEN ===================== -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <img id="loginLogo" class="login-logo" src="https://sjphysiotherapy.in/LOGO/favicon.png" alt="Logo">
+    <h1>SJ Physiotherapy</h1>
+    <p class="sub">Patient Assessment &amp; Records System</p>
+    <div id="loginError" class="login-error"></div>
+    <div class="field">
+      <label for="loginUser">Username / Physiotherapist ID</label>
+      <input id="loginUser" type="text" autocomplete="username" placeholder="Enter username or ID">
+    </div>
+    <div class="field">
+      <label for="loginPass">Password</label>
+      <input id="loginPass" type="password" autocomplete="current-password" placeholder="Enter password">
+    </div>
+    <button id="loginBtn" class="btn btn-primary btn-block">Log In</button>
+    <p class="login-security-note">&#128274; Your password is never stored in this browser - it is checked once against the database and forgotten.</p>
+  </div>
+</div>
+
+<!-- ===================== APP SHELL ===================== -->
+<div id="appShell" class="app-shell hidden">
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-brand">
+      <img id="sidebarLogo" src="https://via.placeholder.com/160x160.png?text=LOGO" alt="Logo">
+      <div class="brand-text">
+        <div class="name" id="sidebarCompanyName">SJ Physiotherapy</div>
+        <div class="tag">Patient Assessment &amp; Records</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <button class="nav-item active" data-view="assessment"><span class="ic">&#128221;</span><span class="nav-label">New Assessment</span></button>
+      <button class="nav-item" data-view="lookup"><span class="ic">&#128269;</span><span class="nav-label">Find / Edit Record</span></button>
+      <button class="nav-item" data-view="reports"><span class="ic">&#128203;</span><span class="nav-label">Reports</span></button>
+      <button class="nav-item" data-view="dashboard"><span class="ic">&#128202;</span><span class="nav-label">Dashboard</span></button>
+      <button class="nav-item" id="navAdmin" data-view="admin"><span class="ic">&#9881;&#65039;</span><span class="nav-label">Admin Settings</span></button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="who">Signed in as <b id="whoAmI">SJ Physiotherapy Admin</b></div>
+      <button id="logoutBtn" class="btn btn-outline btn-sm btn-block" style="border-color:rgba(255,255,255,.4); color:var(--theme-sidebar-text);">Log Out</button>
+      <div class="creator-credit">
+        <div class="creator-credit-name">SJ Physiotherapy &bull; Internal System</div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-area">
+    <div class="topbar">
+      <button class="hamburger" id="hamburgerBtn">&#9776;</button>
+      <div class="brand-mini"><img id="topbarLogo" src="https://via.placeholder.com/160x160.png?text=LOGO">SJ Physiotherapy</div>
+      <div style="width:28px;"></div>
+    </div>
+
+    <div id="staleBackendBar" class="stale-backend-bar"></div>
+    <div id="toastHost" class="toast-host"></div>
+
+    <!-- ===================== NEW ASSESSMENT VIEW ===================== -->
+    <section id="view-assessment" class="view active">
+      <div class="view-header">
+        <div>
+          <h2 id="assessmentHeading">New Assessment</h2>
+          <p>Fill in every section below exactly as on the clinic's paper assessment sheet - it saves as one patient visit record.</p>
+        </div>
+        <button id="resetFormBtn" class="btn btn-outline btn-sm" style="display:none;">&#8635; Start New Assessment</button>
+      </div>
+
+      <div id="assessmentFormWrap">
+        <!-- PATIENT & VISIT DETAILS -->
+        <div class="panel">
+          <h3>Patient &amp; Visit Details</h3>
+          <div class="form-grid">
+            <div class="field">
+              <label>Patient Name <span class="req">*</span></label>
+              <input id="f_patientName" type="text" placeholder="e.g. Ramesh Kumar">
+              <div class="field-error">Patient name is required</div>
+            </div>
+            <div class="field">
+              <label>Contact No. <span class="req">*</span></label>
+              <input id="f_phone" type="tel" placeholder="10-digit mobile number">
+              <div class="field-error">Valid phone number is required</div>
+            </div>
+            <div class="field">
+              <label>Date <span class="req">*</span></label>
+              <input id="f_date" type="date">
+            </div>
+            <div class="field">
+              <label>Age / Sex</label>
+              <div class="age-sex-row">
+                <input id="f_age" type="number" min="0" max="130" placeholder="Age">
+                <select id="f_sex"><option value="">Sex</option><option>Male</option><option>Female</option><option>Other</option></select>
+              </div>
+            </div>
+            <div class="field">
+              <label>UHID / File No.</label>
+              <input id="f_uhid" type="text" placeholder="optional">
+            </div>
+            <div class="field">
+              <label>Referred By</label>
+              <input id="f_referredBy" type="text" placeholder="Doctor / self / etc.">
+            </div>
+            <div class="field">
+              <label>Occupation</label>
+              <input id="f_occupation" type="text">
+            </div>
+            <div class="field">
+              <label>Email ID</label>
+              <input id="f_email" type="email" placeholder="optional">
+            </div>
+            <div class="field span-2">
+              <label>Address</label>
+              <textarea id="f_address" rows="2"></textarea>
+            </div>
+            <div class="field">
+              <label>How Did They Know Us?</label>
+              <select id="f_howKnow"><option value="">Select...</option></select>
+            </div>
+            <div class="field">
+              <label>Patient ID <span class="field-hint-inline">(manual, optional)</span></label>
+              <input id="f_patientId" type="text" placeholder="Your own internal ID, if any">
+            </div>
+            <div class="field">
+              <label>Invoice Number <span class="field-hint-inline">(fill later via Find/Edit)</span></label>
+              <input id="f_invoiceNumber" type="text" placeholder="Leave blank for now">
+            </div>
+            <div class="field">
+              <label>Issue Type <span class="req">*</span></label>
+              <div class="issue-select-row">
+                <select id="f_issueType"><option value="">Select issue...</option></select>
+                <button id="addIssueBtn" type="button" class="btn btn-outline btn-sm">+ New</button>
+              </div>
+            </div>
+          </div>
+          <div id="patientMatchHint" class="field-hint"></div>
+        </div>
+
+        <!-- CHIEF COMPLAINT / HPI -->
+        <div class="panel">
+          <h3>Chief Complaint &amp; History</h3>
+          <div class="form-grid">
+            <div class="field span-2">
+              <label>Chief Complaint</label>
+              <textarea id="f_chiefComplaint" rows="2"></textarea>
+            </div>
+            <div class="field span-2">
+              <label>History of Present Illness</label>
+              <textarea id="f_hpi" rows="3"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- OBSERVATION & PAIN -->
+        <div class="panel">
+          <h3>Observation &amp; Pain Assessment</h3>
+          <div class="form-grid">
+            <div class="field"><label>Posture</label><input id="f_posture" type="text"></div>
+            <div class="field"><label>Gait</label><input id="f_obsGait" type="text"></div>
+            <div class="field"><label>Deformity / Swelling</label><input id="f_deformitySwelling" type="text"></div>
+          </div>
+          <div class="vas-wrap">
+            <label>Pain Assessment (VAS)</label>
+            <input id="f_vas" type="range" min="0" max="10" step="1" value="0">
+            <div class="vas-scale" id="vasScaleDisplay"></div>
+          </div>
+          <div class="form-grid" style="margin-top:10px;">
+            <div class="field"><label>Nature of Pain</label><input id="f_natureOfPain" type="text"></div>
+            <div class="field"><label>Aggravating Factors</label><input id="f_aggravatingFactors" type="text"></div>
+            <div class="field"><label>Relieving Factors</label><input id="f_relievingFactors" type="text"></div>
+          </div>
+        </div>
+
+        <!-- PAST MEDICAL HISTORY -->
+        <div class="panel">
+          <h3>Past Medical History</h3>
+          <div class="pmh-checks">
+            <label class="pmh-check"><input type="checkbox" id="f_pmhDM"> DM</label>
+            <label class="pmh-check"><input type="checkbox" id="f_pmhHTN"> HTN</label>
+            <label class="pmh-check"><input type="checkbox" id="f_pmhThyroid"> Thyroid</label>
+            <label class="pmh-check"><input type="checkbox" id="f_pmhCardiac"> Cardiac</label>
+          </div>
+          <div class="field">
+            <label>Surgery / Fracture / Hospitalization (Specify)</label>
+            <input id="f_surgeryFractureHospitalization" type="text">
+          </div>
+        </div>
+
+        <!-- ROM -->
+        <div class="panel">
+          <h3>Range of Motion (ROM)</h3>
+          <div class="table-scroll"><table class="rom-edit-table" id="romTable"></table></div>
+        </div>
+
+        <!-- MMT -->
+        <div class="panel">
+          <h3>Muscle Strength (MMT)</h3>
+          <div class="table-scroll"><table class="rom-edit-table" id="mmtTable"></table></div>
+        </div>
+
+        <!-- BODY DIAGRAM -->
+        <div class="panel">
+          <h3>Mark Pain Point &amp; Radiating Pain</h3>
+          <p class="field-hint">Pick a marker color below, then click anywhere on a diagram to drop a point. Click an existing point to remove it. Nothing here is saved as an image - only the coordinates and colors are stored, and redrawn identically every time.</p>
+          <div class="mark-toolbar">
+            <button type="button" class="mark-tool active" data-color="#d1352f" data-type="pain">&#9679; Pain Point</button>
+            <button type="button" class="mark-tool" data-color="#2778b7" data-type="radiating">&#9679; Radiating Point</button>
+            <span class="mark-tool-custom">
+              <input type="color" id="markCustomColor" value="#a8d339">
+              <button type="button" class="mark-tool" id="markCustomBtn" data-color="#a8d339" data-type="custom">Custom</button>
+            </span>
+            <button type="button" class="btn btn-outline btn-sm" id="clearMarksBtn">Clear All Points</button>
+          </div>
+          <div class="body-diagrams" id="bodyDiagramsWrap"></div>
+        </div>
+
+        <!-- SPECIAL TESTS -->
+        <div class="panel">
+          <h3>Special Tests</h3>
+          <div id="specialTestsRows"></div>
+          <button type="button" id="addSpecialTestBtn" class="btn btn-outline btn-sm">+ Add Test</button>
+        </div>
+
+        <!-- FUNCTIONAL ASSESSMENT -->
+        <div class="panel">
+          <h3>Functional Assessment</h3>
+          <div class="form-grid">
+            <div class="field">
+              <label>Ambulation</label>
+              <select id="f_ambulation"><option value="">Select...</option><option>Independent</option><option>Assisted</option></select>
+            </div>
+            <div class="field">
+              <label>Stair Climbing</label>
+              <select id="f_stairClimbing"><option value="">Select...</option><option>Independent</option><option>Assisted</option></select>
+            </div>
+            <div class="field">
+              <label>ADLs</label>
+              <select id="f_adls"><option value="">Select...</option><option>Independent</option><option>Assisted</option></select>
+            </div>
+          </div>
+        </div>
+
+        <!-- BALANCE / GAIT -->
+        <div class="panel">
+          <h3>Balance</h3>
+          <div class="form-grid">
+            <div class="field"><label>Single Leg Stance</label><input id="f_balanceSingleLegStance" type="text"></div>
+            <div class="field"><label>Romberg Test</label><input id="f_balanceRombergTest" type="text"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Gait</h3>
+          <div class="form-grid">
+            <div class="field"><label>Pattern</label><input id="f_gaitPattern" type="text"></div>
+            <div class="field"><label>Cadence</label><input id="f_gaitCadence" type="text"></div>
+            <div class="field"><label>Limping</label><input id="f_gaitLimping" type="text"></div>
+          </div>
+        </div>
+
+        <!-- CLINICAL DIAGNOSIS / GOALS / PLAN -->
+        <div class="panel">
+          <h3>Clinical Diagnosis</h3>
+          <div class="field"><textarea id="f_clinicalDiagnosis" rows="2"></textarea></div>
+        </div>
+        <div class="panel">
+          <div class="two-col">
+            <div>
+              <h3>Treatment Goals</h3>
+              <div id="goalsRows"></div>
+              <button type="button" id="addGoalBtn" class="btn btn-outline btn-sm">+ Add Goal</button>
+            </div>
+            <div>
+              <h3>Treatment Plan</h3>
+              <div id="planRows"></div>
+              <button type="button" id="addPlanBtn" class="btn btn-outline btn-sm">+ Add Plan Item</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- FOLLOW UP -->
+        <div class="panel">
+          <h3>Follow Up / Notes</h3>
+          <div class="field"><textarea id="f_followUpNotes" rows="4"></textarea></div>
+          <div class="field" style="max-width:260px;"><label>Next Review Date</label><input id="f_nextReviewDate" type="date"></div>
+        </div>
+
+        <!-- SIGN & SAVE -->
+        <div class="panel">
+          <h3>Confirm &amp; Save (Physiotherapist Authorization Required)</h3>
+          <div class="biller-box">
+            <div id="physioAuthFields" style="display:contents;">
+              <div class="field" style="margin:0;">
+                <label>Physiotherapist</label>
+                <select id="f_physioId"><option value="">Select physiotherapist...</option></select>
+              </div>
+              <div class="field" style="margin:0;">
+                <label>Password</label>
+                <input id="f_physioPassword" type="password" placeholder="Password">
+              </div>
+            </div>
+            <div class="field" id="physioLockedField" style="margin:0; display:none;">
+              <label>Assessed By</label>
+              <input type="text" id="physioLockedText" disabled>
+            </div>
+            <div class="field" id="physioSignPasswordField" style="margin:0; display:none;">
+              <label>Confirm Your Password to Sign</label>
+              <input type="password" id="f_physioOwnPassword" placeholder="Your password">
+            </div>
+            <button id="saveAssessmentBtn" class="btn btn-primary">Save &amp; Generate Record</button>
+          </div>
+          <div id="physioStatus" class="biller-status"></div>
+        </div>
+      </div>
+
+      <!-- ===================== RECORD PREVIEW (after save / from Find-Edit) ===================== -->
+      <div id="recordPreviewWrap" class="hidden">
+        <div class="preview-actions">
+          <div class="badges"><span class="badge badge-ok" id="previewSavedBadge">&#10003; Saved</span></div>
+          <div class="preview-actions-buttons">
+            <button id="editRecordBtn" class="btn btn-outline btn-sm">&#9998; Edit This Record</button>
+            <button id="shareRecordBtn" class="btn btn-primary btn-sm">&#128257; Share / Print</button>
+          </div>
+        </div>
+        <div class="doc-scale-outer">
+          <div class="doc-paper doc-scale-inner" id="docPaper"></div>
+        </div>
+        <div class="doc-paper" id="printSnapshot" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <!-- ===================== LOOKUP / EDIT VIEW ===================== -->
+    <section id="view-lookup" class="view">
+      <div class="view-header">
+        <div>
+          <h2>Find / Edit Record</h2>
+          <p>Search by Visit ID, Patient ID, Patient Visit ID, phone or name. Editing requires Super Admin or the owning physiotherapist.</p>
+        </div>
+      </div>
+      <div class="lookup-search">
+        <input id="lookupQuery" type="text" placeholder="Search Visit ID, Patient ID, phone or name...">
+        <button id="lookupBtn" class="btn btn-primary">Search</button>
+      </div>
+      <div id="lookupResults" class="lookup-results"></div>
+    </section>
+
+    <!-- ===================== REPORTS VIEW ===================== -->
+    <section id="view-reports" class="view">
+      <div class="view-header">
+        <div>
+          <h2>Reports</h2>
+          <p>Live, filterable views of your data. Everyone can browse every report, but no one can edit here.</p>
+        </div>
+        <button id="refreshReportBtn" class="btn btn-outline btn-sm">&#128260; Refresh</button>
+      </div>
+
+      <div class="admin-tabs" id="reportTabs">
+        <button class="admin-tab report-tab active" data-report="universal">Universal Report</button>
+        <button class="admin-tab report-tab" data-report="daily">Daily Report</button>
+      </div>
+
+      <div class="panel">
+        <div class="report-toolbar">
+          <span id="reportRowCount" class="report-row-count"></span>
+          <div class="report-toolbar-right">
+            <div class="report-columns-wrap">
+              <button id="reportColumnsBtn" class="btn btn-outline btn-sm">&#9881;&#65039; Columns</button>
+              <div class="report-columns-popover" id="reportColumnsPopover" style="display:none;">
+                <div class="report-columns-list" id="reportColumnsList"></div>
+                <div class="report-columns-actions">
+                  <button id="reportColumnsCancelBtn" class="btn btn-outline btn-sm">Cancel</button>
+                  <button id="reportColumnsApplyBtn" class="btn btn-primary btn-sm">Apply</button>
+                </div>
+              </div>
+            </div>
+            <button id="reportClearFiltersBtn" class="btn btn-outline btn-sm">&#10006; Clear Filters</button>
+            <button id="reportDownloadBtn" class="btn btn-primary btn-sm" style="display:none;">&#11015;&#65039; Download Excel</button>
+          </div>
+        </div>
+        <div class="report-table-scroll">
+          <table class="biller-table report-table" id="reportTable">
+            <thead>
+              <tr id="reportHeaderRow"></tr>
+              <tr id="reportFilterRow" class="report-filter-row"></tr>
+            </thead>
+            <tbody id="reportTableBody"></tbody>
+          </table>
+        </div>
+        <div id="reportLoadingHint" class="field-hint" style="margin-top:10px;">Loading report…</div>
+        <div id="reportEmptyHint" class="field-hint" style="display:none; margin-top:10px;">No rows match your filters.</div>
+      </div>
+    </section>
+
+    <!-- ===================== DASHBOARD VIEW ===================== -->
+    <section id="view-dashboard" class="view">
+      <div class="view-header">
+        <div>
+          <h2>Clinic Dashboard</h2>
+          <p>Visual analysis of visits, patients, issue types and referral sources.</p>
+        </div>
+        <button id="refreshDashboardBtn" class="btn btn-outline btn-sm">&#128260; Refresh All</button>
+      </div>
+
+      <div class="dash-filter-bar">
+        <div class="field"><label>From</label><input id="dash_dateFrom" type="date"></div>
+        <div class="field"><label>To</label><input id="dash_dateTo" type="date"></div>
+        <button id="dashApplyFilterBtn" class="btn btn-outline btn-sm">Apply</button>
+        <button id="dashClearFilterBtn" class="btn btn-outline btn-sm">Clear</button>
+      </div>
+
+      <div class="dash-grid">
+        <div class="dash-card kpi-card c-teal">
+          <div class="dash-card-main">
+            <div class="icon">&#128197;</div>
+            <div class="label">Total Visits</div>
+            <div class="value" id="kpiTotalVisits">0</div>
+          </div>
+        </div>
+        <div class="dash-card kpi-card c-violet">
+          <div class="dash-card-main">
+            <div class="icon">&#128101;</div>
+            <div class="label">Unique Patients</div>
+            <div class="value" id="kpiTotalPatients">0</div>
+          </div>
+        </div>
+        <div class="dash-card chart-card wide">
+          <div class="dash-card-main">
+            <h4>Visits by Issue Type</h4>
+            <div id="issueBarChart"></div>
+          </div>
+        </div>
+        <div class="dash-card chart-card wide">
+          <div class="dash-card-main">
+            <h4>How Patients Heard About Us</h4>
+            <div id="howKnowDonutChart"></div>
+          </div>
+        </div>
+        <div class="dash-card chart-card wide">
+          <div class="dash-card-main">
+            <h4>Visits by Physiotherapist</h4>
+            <div id="physioDonutChart"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="view-header" style="margin-top:28px;">
+        <div>
+          <h2 style="font-size:18px;">Custom Charts</h2>
+          <p>Super Admin can build extra charts on top of the defaults above.</p>
+        </div>
+        <button id="addCustomChartBtn" class="btn btn-primary btn-sm" style="display:none;">+ New Chart</button>
+      </div>
+      <div id="customChartsGrid" class="dash-grid"></div>
+      <p id="customChartsEmptyHint" class="field-hint" style="display:none;">No custom charts yet.</p>
+    </section>
+
+    <!-- CUSTOM CHART BUILDER MODAL -->
+    <div id="chartBuilderModal" class="modal-overlay">
+      <div class="modal-box">
+        <h3 id="chartBuilderTitle">New Chart</h3>
+        <input type="hidden" id="cb_chartId">
+        <div class="form-grid">
+          <div class="field span-2">
+            <label>Chart Name</label>
+            <input id="cb_name" type="text" placeholder="e.g. Top Issues This Month">
+          </div>
+          <div class="field span-2">
+            <label>Data Source</label>
+            <select id="cb_dataSource">
+              <option value="visits">Visits (any assessment field)</option>
+              <option value="patients">Patients (running total)</option>
+              <option value="issues">Issues (running total)</option>
+            </select>
+            <div id="cb_dataSourceHint" class="field-hint" style="margin-top:6px;"></div>
+          </div>
+          <div class="field" id="cb_dimensionField">
+            <label>Group By</label>
+            <select id="cb_dimension"></select>
+          </div>
+          <div class="field">
+            <label>Measure</label>
+            <select id="cb_metric">
+              <option value="count">Count (how many records)</option>
+              <option value="sum">Sum (add up a number field)</option>
+              <option value="average">Average (mean of a number field)</option>
+            </select>
+          </div>
+          <div class="field" id="cb_metricFieldWrap">
+            <label>Number Field</label>
+            <select id="cb_metricField"><option value="VAS">VAS (Pain Score)</option><option value="Age">Age</option></select>
+          </div>
+          <div class="field">
+            <label>Chart Type</label>
+            <select id="cb_type">
+              <option value="bar">Bar Chart</option>
+              <option value="pie">Pie Chart</option>
+              <option value="donut">Donut Chart</option>
+              <option value="number">Number Card</option>
+            </select>
+          </div>
+          <div class="field" id="cb_topNField"><label>Show Top</label><input id="cb_topN" type="number" min="0" placeholder="0 = show all"></div>
+          <div class="field" id="cb_sortDirField">
+            <label>Order</label>
+            <select id="cb_sortDir"><option value="desc">Highest first</option><option value="asc">Lowest first</option></select>
+          </div>
+          <div class="field" id="cb_colorField"><label>Color</label><input id="cb_color" type="color" value="#0f6e5c"></div>
+        </div>
+        <div id="chartBuilderStatus" class="biller-status"></div>
+        <div class="modal-actions">
+          <button class="btn btn-outline btn-sm" id="cb_cancel">Cancel</button>
+          <button class="btn btn-primary btn-sm" id="cb_save">Save Chart</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== ADMIN SETTINGS VIEW ===================== -->
+    <section id="view-admin" class="view">
+      <div class="view-header">
+        <div>
+          <h2>Admin Settings</h2>
+          <p>Manage physiotherapists, issue types and clinic details. Super Admin login required to save changes.</p>
+        </div>
+      </div>
+
+      <div class="admin-tabs">
+        <button class="admin-tab active" data-tab="physios">Physiotherapists</button>
+        <button class="admin-tab" data-tab="clinic">Clinic Details</button>
+        <button class="admin-tab" data-tab="issues">Issues List</button>
+        <button class="admin-tab" data-tab="theme">Theme</button>
+        <button class="admin-tab" data-tab="database">Database</button>
+        <button class="admin-tab" data-tab="account">My Login</button>
+      </div>
+
+      <div class="panel">
+        <div class="field-hint" style="margin-bottom:14px;">Most changes below require Super Admin credentials.</div>
+        <div class="form-grid" style="margin-bottom:16px;">
+          <div class="field">
+            <label>Super Admin Username</label>
+            <input id="admin_su_user" type="text">
+          </div>
+          <div class="field">
+            <label>Super Admin Password</label>
+            <input id="admin_su_pass" type="password">
+          </div>
+        </div>
+
+        <!-- PHYSIOTHERAPISTS TAB -->
+        <div id="tab-physios" class="admin-pane active">
+          <button id="addPhysioBtn" class="btn btn-outline btn-sm" style="margin-bottom:12px;">+ Add New Physiotherapist</button>
+          <div class="table-scroll">
+            <table class="biller-table">
+              <thead><tr><th>ID</th><th>Name</th><th>Active</th><th>Find/Edit</th><th>Reports</th><th>Dashboard</th><th>Signature</th><th>Actions</th></tr></thead>
+              <tbody id="physioTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- CLINIC DETAILS TAB -->
+        <div id="tab-clinic" class="admin-pane">
+          <div class="form-grid">
+            <div class="field span-2">
+              <label>App Logo URL (sidebar / login - square works best)</label>
+              <input id="s_logo" type="text" placeholder="https://...">
+            </div>
+            <div class="field span-2">
+              <label>Print Logo URL (assessment sheet header - rectangular logo recommended)</label>
+              <input id="s_printLogo" type="text" placeholder="https://... (leave blank to use App Logo)">
+            </div>
+            <div class="field"><label>Clinic Name</label><input id="s_clinicName" type="text"></div>
+            <div class="field"><label>Phone</label><input id="s_phone" type="text"></div>
+            <div class="field span-2"><label>Address</label><textarea id="s_address" rows="2"></textarea></div>
+            <div class="field"><label>Website</label><input id="s_website" type="text"></div>
+            <div class="field"><label>Clinic Email</label><input id="s_clinicEmail" type="text"></div>
+            <div class="field"><label>Registration / License No. (optional)</label><input id="s_registrationNo" type="text"></div>
+            <div class="field span-2">
+              <label>Social Links (footer of emailed records)</label>
+            </div>
+            <div class="field"><label>WhatsApp Number</label><input id="s_socialWhatsapp" type="text" placeholder="9629495946"></div>
+            <div class="field"><label>Instagram URL</label><input id="s_socialInstagram" type="text"></div>
+            <div class="field"><label>Facebook URL</label><input id="s_socialFacebook" type="text"></div>
+            <div class="field"><label>LinkedIn URL</label><input id="s_socialLinkedin" type="text"></div>
+            <div class="field"><label>YouTube URL</label><input id="s_socialYoutube" type="text"></div>
+          </div>
+          <button id="saveClinicBtn" class="btn btn-primary" style="margin-top:10px;">Save Clinic Details</button>
+          <div id="clinicStatus" class="biller-status"></div>
+        </div>
+
+        <!-- ISSUES LIST TAB -->
+        <div id="tab-issues" class="admin-pane">
+          <div class="issue-add-row">
+            <input id="newIssueName" type="text" placeholder="New issue / diagnosis type name">
+            <button id="addIssueAdminBtn" class="btn btn-outline btn-sm">+ Add</button>
+          </div>
+          <div class="table-scroll">
+            <table class="biller-table">
+              <thead><tr><th>ID</th><th>Name</th><th>Active</th><th>Actions</th></tr></thead>
+              <tbody id="issueTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- THEME TAB -->
+        <div id="tab-theme" class="admin-pane">
+          <p class="field-hint" style="margin-bottom:14px;">Change the colors used everywhere in this app - login screen, sidebar, buttons, headings, tabs and the printed assessment sheet.</p>
+          <div class="theme-grid" id="themeGrid"></div>
+          <div class="modal-actions" style="margin-top:16px;">
+            <button id="resetThemeBtn" class="btn btn-outline btn-sm">Reset to Default</button>
+            <button id="saveThemeBtn" class="btn btn-primary btn-sm">Save Theme</button>
+          </div>
+          <div id="themeStatus" class="biller-status"></div>
+        </div>
+
+        <!-- DATABASE TAB -->
+        <div id="tab-database" class="admin-pane">
+          <div class="dash-grid" id="dbStatusGrid"></div>
+          <div class="table-scroll" style="margin-top:16px;">
+            <table class="biller-table">
+              <thead><tr><th>Sheet</th><th>Rows</th><th>Columns</th><th>Cells Used</th></tr></thead>
+              <tbody id="dbStatusTableBody"></tbody>
+            </table>
+          </div>
+          <button id="refreshDbStatusBtn" class="btn btn-outline btn-sm" style="margin-top:12px;">&#128260; Refresh Status</button>
+        </div>
+
+        <!-- MY LOGIN TAB -->
+        <div id="tab-account" class="admin-pane">
+          <div id="accountAdminPane">
+            <h4>Super Admin Login</h4>
+            <div class="form-grid">
+              <div class="field"><label>New Username</label><input id="acc_newUser" type="text"></div>
+              <div class="field"><label>New Password</label><input id="acc_newPass" type="password"></div>
+            </div>
+            <button id="saveAdminLoginBtn" class="btn btn-primary btn-sm">Update Login</button>
+            <div id="adminLoginStatus" class="biller-status"></div>
+          </div>
+          <div id="accountPhysioPane" style="display:none;">
+            <h4>My Password</h4>
+            <div class="form-grid">
+              <div class="field"><label>Current Password</label><input id="acc_currentPass" type="password"></div>
+              <div class="field"><label>New Password</label><input id="acc_physioNewPass" type="password"></div>
+            </div>
+            <button id="savePhysioPassBtn" class="btn btn-primary btn-sm">Update Password</button>
+            <div id="physioPassStatus" class="biller-status"></div>
+
+            <h4 style="margin-top:22px;">My Signature</h4>
+            <p class="field-hint">Upload a PNG of your signature once - it will be pulled in automatically every time you sign an assessment.</p>
+            <div class="sig-upload-row">
+              <img id="mySignaturePreview" class="sig-preview" style="display:none;">
+              <input type="file" id="signatureFileInput" accept="image/png">
+            </div>
+            <div class="field" style="max-width:260px;"><label>Confirm Password to Upload</label><input id="acc_sigPassword" type="password"></div>
+            <button id="uploadSignatureBtn" class="btn btn-primary btn-sm">Upload Signature</button>
+            <div id="signatureStatus" class="biller-status"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- ===================== SHARE RECORD MODAL ===================== -->
+<div id="shareRecordModal" class="modal-overlay">
+  <div class="modal-box">
+    <h3 id="shareRecordTitle">Share Record</h3>
+    <div class="share-btn-row">
+      <button id="sharePrintBtn" class="btn btn-outline btn-sm">&#128424;&#65039; Print</button>
+      <button id="shareDownloadPdfBtn" class="btn btn-outline btn-sm">&#11015;&#65039; Save as PDF</button>
+      <button id="shareViaEmailBtn" class="btn btn-outline btn-sm">&#128231; Email</button>
+      <button id="shareViaWhatsappBtn" class="btn btn-outline btn-sm">&#128241; WhatsApp</button>
+    </div>
+    <div id="shareEmailField" class="field" style="display:none;">
+      <label>Recipient Email</label>
+      <input id="share_email" type="email" placeholder="patient@example.com">
+      <button id="shareEmailPreviewBtn" class="btn btn-outline btn-sm" style="margin-top:6px;">Preview Email</button>
+    </div>
+    <div id="shareWhatsappField" class="field" style="display:none;">
+      <label>WhatsApp Number</label>
+      <input id="share_phone" type="tel" placeholder="10-digit mobile number">
+    </div>
+    <div id="shareStatus" class="biller-status"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" id="share_cancel">Close</button>
+      <button class="btn btn-primary btn-sm" id="share_send" style="display:none;">Send</button>
+    </div>
+  </div>
+</div>
+
+<!-- EMAIL PREVIEW MODAL -->
+<div id="emailPreviewModal" class="modal-overlay">
+  <div class="modal-box modal-box-lg">
+    <h3>Email Preview</h3>
+    <iframe id="emailPreviewFrame" class="email-preview-frame"></iframe>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" id="emailPreview_close">Close</button>
+      <button class="btn btn-primary btn-sm" id="emailPreview_send">Send This Email</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD/EDIT PHYSIOTHERAPIST MODAL -->
+<div id="physioModal" class="modal-overlay">
+  <div class="modal-box">
+    <h3 id="physioModalTitle">Add Physiotherapist</h3>
+    <input type="hidden" id="pm_editId">
+    <div class="form-grid">
+      <div class="field span-2"><label>Name</label><input id="pm_name" type="text"></div>
+      <div class="field span-2"><label>Password</label><input id="pm_password" type="password" placeholder="Leave blank to keep unchanged (edit mode)"></div>
+    </div>
+    <div id="physioModalStatus" class="biller-status"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" id="pm_cancel">Cancel</button>
+      <button class="btn btn-primary btn-sm" id="pm_save">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js?v=20260917-01"></script>
+</body>
+</html>
