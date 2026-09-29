@@ -294,6 +294,19 @@
           <div class="field" style="max-width:260px;"><label>Next Review Date</label><input id="f_nextReviewDate" type="date"></div>
         </div>
 
+        <!-- PHYSIOTHERAPIST SIGNATURE -->
+        <div class="panel">
+          <h3>Physiotherapist Signature</h3>
+          <p class="field-hint">Pulled in automatically from the selected physiotherapist's own login - uploaded once from Admin Settings &rarr; My Login, never drawn or typed here.</p>
+          <div class="sig-preview-row">
+            <div class="sig-preview-box">
+              <img id="formSignaturePreview" class="sig-preview-img" style="display:none;">
+              <span id="formSignatureEmpty" class="sig-preview-empty">No physiotherapist selected yet</span>
+            </div>
+            <div id="formSignatureCaption" class="sig-preview-caption"></div>
+          </div>
+        </div>
+
         <!-- SIGN & SAVE -->
         <div class="panel">
           <h3>Confirm &amp; Save (Physiotherapist Authorization Required)</h3>
@@ -322,8 +335,21 @@
         </div>
       </div>
 
-      <!-- ===================== RECORD PREVIEW (after save / from Find-Edit) ===================== -->
-      <div id="recordPreviewWrap" class="hidden">
+    </section>
+
+    <!-- ===================== RECORD PREVIEW (after save / from Find-Edit) =====================
+         Independent top-level view (its own nav-less .view section) rather than being nested
+         inside #view-assessment - this is what fixes "Open" wrongly landing on New Assessment:
+         showing this view no longer requires activating the New Assessment section at all. -->
+    <section id="view-record-preview" class="view record-preview-section">
+      <div class="view-header">
+        <div>
+          <h2 id="recordPreviewHeading">Record</h2>
+          <p id="recordPreviewSub">&nbsp;</p>
+        </div>
+        <button id="closePreviewBtn" class="btn btn-outline btn-sm">&#10005; Close</button>
+      </div>
+      <div id="recordPreviewWrap">
         <div class="preview-actions">
           <div class="badges"><span class="badge badge-ok" id="previewSavedBadge">&#10003; Saved</span></div>
           <div class="preview-actions-buttons">
@@ -405,57 +431,55 @@
       <div class="view-header">
         <div>
           <h2>Clinic Dashboard</h2>
-          <p>Visual analysis of visits, patients, issue types and referral sources.</p>
+          <p>Visual analysis of visits, patients, issue types and referral sources. Each card below has its own independent filters.</p>
         </div>
         <button id="refreshDashboardBtn" class="btn btn-outline btn-sm">&#128260; Refresh All</button>
       </div>
 
-      <div class="dash-filter-bar">
-        <div class="field"><label>From</label><input id="dash_dateFrom" type="date"></div>
-        <div class="field"><label>To</label><input id="dash_dateTo" type="date"></div>
-        <button id="dashApplyFilterBtn" class="btn btn-outline btn-sm">Apply</button>
-        <button id="dashClearFilterBtn" class="btn btn-outline btn-sm">Clear</button>
-      </div>
-
       <div class="dash-grid">
-        <div class="dash-card kpi-card c-teal">
+        <div class="dash-card kpi-card c-teal dash-card-filterable" data-widget="totalVisits">
           <div class="dash-card-main">
             <div class="icon">&#128197;</div>
             <div class="label">Total Visits</div>
             <div class="value" id="kpiTotalVisits">0</div>
           </div>
+          <div class="dash-card-filters" data-widget-filters="totalVisits"></div>
         </div>
-        <div class="dash-card kpi-card c-violet">
+        <div class="dash-card kpi-card c-violet dash-card-filterable" data-widget="totalPatients">
           <div class="dash-card-main">
             <div class="icon">&#128101;</div>
             <div class="label">Unique Patients</div>
             <div class="value" id="kpiTotalPatients">0</div>
           </div>
+          <div class="dash-card-filters" data-widget-filters="totalPatients"></div>
         </div>
-        <div class="dash-card chart-card wide">
+        <div class="dash-card chart-card wide dash-card-filterable" data-widget="issueBar">
           <div class="dash-card-main">
             <h4>Visits by Issue Type</h4>
             <div id="issueBarChart"></div>
           </div>
+          <div class="dash-card-filters" data-widget-filters="issueBar"></div>
         </div>
-        <div class="dash-card chart-card wide">
+        <div class="dash-card chart-card wide dash-card-filterable" data-widget="howKnowDonut">
           <div class="dash-card-main">
             <h4>How Patients Heard About Us</h4>
             <div id="howKnowDonutChart"></div>
           </div>
+          <div class="dash-card-filters" data-widget-filters="howKnowDonut"></div>
         </div>
-        <div class="dash-card chart-card wide">
+        <div class="dash-card chart-card wide dash-card-filterable" data-widget="physioDonut">
           <div class="dash-card-main">
             <h4>Visits by Physiotherapist</h4>
             <div id="physioDonutChart"></div>
           </div>
+          <div class="dash-card-filters" data-widget-filters="physioDonut"></div>
         </div>
       </div>
 
       <div class="view-header" style="margin-top:28px;">
         <div>
           <h2 style="font-size:18px;">Custom Charts</h2>
-          <p>Super Admin can build extra charts on top of the defaults above.</p>
+          <p>Super Admin can build extra charts on top of the defaults above. Visible to everyone; only Super Admin can add, edit or delete them.</p>
         </div>
         <button id="addCustomChartBtn" class="btn btn-primary btn-sm" style="display:none;">+ New Chart</button>
       </div>
@@ -610,25 +634,275 @@
 
         <!-- THEME TAB -->
         <div id="tab-theme" class="admin-pane">
-          <p class="field-hint" style="margin-bottom:14px;">Change the colors used everywhere in this app - login screen, sidebar, buttons, headings, tabs and the printed assessment sheet.</p>
-          <div class="theme-grid" id="themeGrid"></div>
+          <p class="field-hint" style="margin-bottom:14px;">Change the colors used everywhere in this app - the login screen, sidebar, buttons, headings, tabs, dashboard charts, the authorization box, and the printed assessment sheet (on-screen preview, Print, Save-as-PDF and the emailed PDF all share these same settings). Every section below shows a live preview right next to it. Changes apply the moment you click Save - no redeploy, no code, needed.</p>
+
+          <!-- LOGIN SCREEN -->
+          <div class="theme-section">
+            <h4>Login Screen</h4>
+            <p>The credentials page shown before anyone signs in. The logo shown here is the same one set under Clinic Details &rarr; App Logo URL - no separate image needed.</p>
+            <div class="theme-section-body">
+              <div class="theme-fields">
+                <div class="theme-field"><label>Background Style</label><select id="th_ThemeLoginBgStyle" class="th-style-select" data-preview="loginPreview"><option value="solid">Solid</option><option value="gradient-diagonal">Gradient - Diagonal</option><option value="gradient-vertical">Gradient - Vertical</option><option value="gradient-horizontal">Gradient - Horizontal</option></select></div>
+                <div class="theme-field"><label>Start Color</label><input type="color" id="th_ThemeLoginBgFrom" class="th-input" data-preview="loginPreview"></div>
+                <div class="theme-field"><label>End Color</label><input type="color" id="th_ThemeLoginBgTo" class="th-input" data-preview="loginPreview"></div>
+                <div class="theme-field"><label>Card Background</label><input type="color" id="th_ThemeLoginCardBg" class="th-input" data-preview="loginPreview"></div>
+                <div class="theme-field"><label>Heading Text</label><input type="color" id="th_ThemeLoginHeadingColor" class="th-input" data-preview="loginPreview"></div>
+                <div class="theme-field"><label>Subtext</label><input type="color" id="th_ThemeLoginTextColor" class="th-input" data-preview="loginPreview"></div>
+              </div>
+              <div class="theme-preview" id="loginPreview">
+                <div class="theme-preview-label">PREVIEW</div>
+                <div class="tp-login-bg"><div class="tp-login-card"><div class="tp-login-logo"></div><div class="tp-login-name">SJ Physiotherapy</div><div class="tp-login-sub">Patient Assessment</div></div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SIDEBAR -->
+          <div class="theme-section">
+            <h4>Menubar / Sidebar</h4>
+            <p>The menu item currently open (e.g. "Dashboard" while you're on the Dashboard screen) uses its own Active colors below.</p>
+            <div class="theme-section-body">
+              <div class="theme-fields">
+                <div class="theme-field"><label>Style</label><select id="th_ThemeSidebarStyle" class="th-style-select" data-preview="sidebarPreview"><option value="solid">Solid</option><option value="gradient-diagonal">Gradient - Diagonal</option><option value="gradient-vertical">Gradient - Vertical</option><option value="gradient-horizontal">Gradient - Horizontal</option></select></div>
+                <div class="theme-field"><label>Start Color</label><input type="color" id="th_ThemeSidebarFrom" class="th-input" data-preview="sidebarPreview"></div>
+                <div class="theme-field"><label>End Color</label><input type="color" id="th_ThemeSidebarTo" class="th-input" data-preview="sidebarPreview"></div>
+                <div class="theme-field"><label>Text / Icon Color</label><input type="color" id="th_ThemeSidebarText" class="th-input" data-preview="sidebarPreview"></div>
+                <div class="theme-field"><label>Active Item Background</label><input type="color" id="th_ThemeNavActiveBg" class="th-input" data-preview="sidebarPreview"></div>
+                <div class="theme-field"><label>Active Item Text</label><input type="color" id="th_ThemeNavActiveText" class="th-input" data-preview="sidebarPreview"></div>
+              </div>
+              <div class="theme-preview" id="sidebarPreview">
+                <div class="theme-preview-label">PREVIEW</div>
+                <div class="tp-sidebar">
+                  <div class="tp-sidebar-item">&#128221; New Assessment</div>
+                  <div class="tp-sidebar-item tp-active">&#128202; Dashboard</div>
+                  <div class="tp-sidebar-item">&#9881;&#65039; Admin Settings</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- BUTTONS -->
+          <div class="theme-section">
+            <h4>Buttons &amp; Accent</h4>
+            <p>Also used for links and focus outlines throughout the app (separate from the Active Item colors above). Filled/gradient buttons cover "Save &amp; Generate Record"; bordered/outline buttons cover Logout, Refresh, Clear Filters, and every button styled that way.</p>
+            <div class="theme-section-body">
+              <div class="theme-fields">
+                <div class="theme-field"><label>Style</label><select id="th_ThemeButtonStyle" class="th-style-select" data-preview="buttonPreview"><option value="solid">Solid</option><option value="gradient-diagonal">Gradient - Diagonal</option><option value="gradient-vertical">Gradient - Vertical</option><option value="gradient-horizontal">Gradient - Horizontal</option></select></div>
+                <div class="theme-field"><label>Start Color</label><input type="color" id="th_ThemeButtonFrom" class="th-input" data-preview="buttonPreview"></div>
+                <div class="theme-field"><label>End Color</label><input type="color" id="th_ThemeButtonTo" class="th-input" data-preview="buttonPreview"></div>
+                <div class="theme-field"><label>Button Text</label><input type="color" id="th_ThemeButtonText" class="th-input" data-preview="buttonPreview"></div>
+                <div class="theme-field"><label>Hover - Start</label><input type="color" id="th_ThemeButtonHoverFrom" class="th-input" data-preview="buttonPreview"></div>
+                <div class="theme-field"><label>Hover - End</label><input type="color" id="th_ThemeButtonHoverTo" class="th-input" data-preview="buttonPreview"></div>
+                <div class="theme-field"><label>Outline Text / Border</label><input type="color" id="th_ThemeOutlineText" class="th-input" data-preview="buttonPreview"></div>
+                <div class="theme-field"><label>Outline Border (if different)</label><input type="color" id="th_ThemeOutlineBorder" class="th-input" data-preview="buttonPreview"></div>
+                <div class="theme-field"><label>Outline Hover Background</label><input type="color" id="th_ThemeOutlineHoverBg" class="th-input" data-preview="buttonPreview"></div>
+                <div class="theme-field"><label>Outline Hover Text</label><input type="color" id="th_ThemeOutlineHoverText" class="th-input" data-preview="buttonPreview"></div>
+              </div>
+              <div class="theme-preview" id="buttonPreview">
+                <div class="theme-preview-label">PREVIEW (TOP: NORMAL / BOTTOM: HOVER)</div>
+                <div class="tp-btn-row"><span class="tp-btn-fill">Save &amp; Generate Record</span><span class="tp-btn-fill tp-hover">on hover</span></div>
+                <div class="tp-btn-row"><span class="tp-btn-outline">&#8635; Refresh</span><span class="tp-btn-outline tp-hover">on hover</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- HEADINGS -->
+          <div class="theme-section">
+            <h4>Page &amp; Section Headings</h4>
+            <p>"Page Heading" is the big title at the top of every screen (e.g. "New Assessment", "Reports"), and its grey explainer line right underneath. "Section Heading" is every smaller title inside a page - things like "Patient &amp; Visit Details" here, or "Confirm &amp; Save" in the assessment form.</p>
+            <div class="theme-section-body">
+              <div class="theme-fields">
+                <div class="theme-field"><label>Page Heading</label><input type="color" id="th_ThemePageHeadingColor" class="th-input" data-preview="headingPreview"></div>
+                <div class="theme-field"><label>Page Subheading</label><input type="color" id="th_ThemePageSubheadingColor" class="th-input" data-preview="headingPreview"></div>
+                <div class="theme-field"><label>Section Heading</label><input type="color" id="th_ThemeSectionHeadingColor" class="th-input" data-preview="headingPreview"></div>
+              </div>
+              <div class="theme-preview" id="headingPreview">
+                <div class="theme-preview-label">PREVIEW</div>
+                <div class="tp-page-heading">New Assessment</div>
+                <div class="tp-page-sub">Fill in every section below exactly as on the clinic's paper assessment sheet.</div>
+                <div class="tp-section-heading">PATIENT &amp; VISIT DETAILS</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TABS -->
+          <div class="theme-section">
+            <h4>Tabs</h4>
+            <p>These Admin Settings tabs (Physiotherapists / Clinic Details / Theme / ...) and the Reports tabs (Universal / Daily) share this same styling.</p>
+            <div class="theme-section-body">
+              <div class="theme-fields">
+                <div class="theme-field"><label>Active Tab Text</label><input type="color" id="th_ThemeTabActiveTextColor" class="th-input" data-preview="tabsPreview"></div>
+                <div class="theme-field"><label>Inactive Tab Text</label><input type="color" id="th_ThemeTabInactiveTextColor" class="th-input" data-preview="tabsPreview"></div>
+                <div class="theme-field"><label>Underline Style</label><select id="th_ThemeTabIndicatorStyle" class="th-style-select" data-preview="tabsPreview"><option value="solid">Solid</option><option value="gradient-diagonal">Gradient - Diagonal</option><option value="gradient-horizontal">Gradient - Horizontal</option></select></div>
+                <div class="theme-field"><label>Underline Start</label><input type="color" id="th_ThemeTabIndicatorFrom" class="th-input" data-preview="tabsPreview"></div>
+                <div class="theme-field"><label>Underline End</label><input type="color" id="th_ThemeTabIndicatorTo" class="th-input" data-preview="tabsPreview"></div>
+              </div>
+              <div class="theme-preview" id="tabsPreview">
+                <div class="theme-preview-label">PREVIEW</div>
+                <div class="tp-tabs">
+                  <span class="tp-tab tp-tab-active">Physiotherapists</span>
+                  <span class="tp-tab">Clinic Details</span>
+                  <span class="tp-tab">Theme</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- AUTHORIZATION BOX -->
+          <div class="theme-section">
+            <h4>Authorization Highlight Box</h4>
+            <p>The highlighted box on the assessment form ("Confirm &amp; Save") and in Find/Edit that holds the physiotherapist or Super Admin credential fields.</p>
+            <div class="theme-section-body">
+              <div class="theme-fields">
+                <div class="theme-field"><label>Box Background</label><input type="color" id="th_ThemeGateBgColor" class="th-input" data-preview="gatePreview"></div>
+                <div class="theme-field"><label>Box Border</label><input type="color" id="th_ThemeGateBorderColor" class="th-input" data-preview="gatePreview"></div>
+                <div class="theme-field"><label>Box Title</label><input type="color" id="th_ThemeGateTitleColor" class="th-input" data-preview="gatePreview"></div>
+              </div>
+              <div class="theme-preview" id="gatePreview">
+                <div class="theme-preview-label">PREVIEW</div>
+                <div class="tp-gate">&#128274; Confirm &amp; Save (Physiotherapist Authorization Required)</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ASSESSMENT SHEET DESIGN -->
+          <div class="theme-section">
+            <h4>Assessment Sheet Design</h4>
+            <p>One shared design for every assessment record, wherever it's shown - the on-screen preview, Print, Save-as-PDF, and the emailed PDF attachment all use these exact same settings, so a patient never sees two differently-styled versions of the same record.</p>
+            <div class="theme-section-body">
+              <div class="theme-fields">
+                <div class="theme-field"><label>Header Color</label><input type="color" id="th_ThemeDocHeaderColor" class="th-input" data-preview="docPreview"></div>
+                <div class="theme-field"><label>Field NAME Color</label><input type="color" id="th_ThemeFieldLabelColor" class="th-input" data-preview="docPreview"></div>
+                <div class="theme-field"><label>Field VALUE Color</label><input type="color" id="th_ThemeFieldValueColor" class="th-input" data-preview="docPreview"></div>
+                <div class="theme-field"><label>Section Band Background</label><input type="color" id="th_ThemeSectionBandColor" class="th-input" data-preview="docPreview"></div>
+                <div class="theme-field"><label>Font</label>
+                  <select id="th_ThemeDocFontFamily" class="th-style-select" data-preview="docPreview">
+                    <option value="Georgia, 'Times New Roman', Times, serif">Georgia (serif)</option>
+                    <option value="'Times New Roman', Times, serif">Times New Roman (serif)</option>
+                    <option value="Arial, Helvetica, sans-serif">Arial (sans-serif)</option>
+                    <option value="'Trebuchet MS', sans-serif">Trebuchet MS (sans-serif)</option>
+                    <option value="'Courier New', monospace">Courier New (monospace)</option>
+                  </select>
+                </div>
+                <div class="theme-field"><label>Header Layout</label>
+                  <select id="th_ThemeDocHeaderLayout" class="th-style-select" data-preview="docPreview">
+                    <option value="logo-side">Logo beside company info</option>
+                    <option value="logo-top">Logo above company info</option>
+                  </select>
+                </div>
+              </div>
+              <div class="theme-preview" id="docPreview">
+                <div class="theme-preview-label">PREVIEW</div>
+                <div class="tp-doc-header">
+                  <span class="tp-doc-logo">LOGO</span>
+                  <div><div class="tp-doc-name">SJ Physiotherapy</div><div class="tp-doc-info">Bharathiyar Rd, Coimbatore &bull; +91 97897 31317</div></div>
+                  <span class="tp-doc-id">PAF-000123</span>
+                </div>
+                <div class="tp-doc-band">Patient Details</div>
+                <div class="tp-doc-field"><span class="tp-doc-fl">Patient Name:</span> <span class="tp-doc-fv">Ramesh Kumar</span></div>
+              </div>
+            </div>
+
+            <div class="theme-subrow">
+              <label class="theme-subrow-label">Logo Size (px)</label>
+              <div class="theme-logo-size-row">
+                <input type="number" id="th_ThemeDocLogoWidth" class="th-input th-logo-num" min="20" max="300">
+                <span>&times;</span>
+                <input type="number" id="th_ThemeDocLogoHeight" class="th-input th-logo-num" min="20" max="300">
+                <button type="button" class="btn btn-outline btn-sm logo-preset-btn" data-w="80" data-h="80">Square</button>
+                <button type="button" class="btn btn-outline btn-sm logo-preset-btn" data-w="140" data-h="60">Wide rectangle</button>
+                <button type="button" class="btn btn-outline btn-sm logo-preset-btn" data-w="70" data-h="110">Tall rectangle</button>
+              </div>
+              <p class="field-hint">The logo is never stretched or cropped to fit - pick whatever width/height ratio matches your actual logo file.</p>
+            </div>
+
+            <div class="theme-subrow theme-style-cols">
+              <div>
+                <label class="theme-subrow-label">Company Name</label>
+                <label class="theme-checkbox"><input type="checkbox" id="th_ThemeDocCompanyNameBold"> Bold</label>
+                <label class="theme-checkbox"><input type="checkbox" id="th_ThemeDocCompanyNameItalic"> Italic</label>
+                <label class="theme-checkbox"><input type="checkbox" id="th_ThemeDocCompanyNameUnderline"> Underline</label>
+              </div>
+              <div>
+                <label class="theme-subrow-label">Company Info (address, phone, etc.)</label>
+                <label class="theme-checkbox"><input type="checkbox" id="th_ThemeDocCompanyInfoBold"> Bold</label>
+                <label class="theme-checkbox"><input type="checkbox" id="th_ThemeDocCompanyInfoItalic"> Italic</label>
+                <label class="theme-checkbox"><input type="checkbox" id="th_ThemeDocCompanyInfoUnderline"> Underline</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- TEXT & BACKGROUNDS -->
+          <div class="theme-section">
+            <h4>Text &amp; Backgrounds</h4>
+            <p>These five work together so they're grouped here - "Card Background" is what every panel/box on screen sits on (if text seems to "disappear", the text color you picked is too close to this card color). "Page Background" is the strip of color around the cards on every page. The sidebar, login screen, headings, tabs and assessment sheet header all have their own separate colors above - this section won't touch those.</p>
+            <div class="theme-section-body">
+              <div class="theme-fields">
+                <div class="theme-field"><label>Heading / Primary Text</label><input type="color" id="th_ThemeHeadingColor" class="th-input" data-preview="textPreview"></div>
+                <div class="theme-field"><label>Muted / Secondary Text</label><input type="color" id="th_ThemeMutedColor" class="th-input" data-preview="textPreview"></div>
+                <div class="theme-field"><label>Card / Panel Background</label><input type="color" id="th_ThemeSurfaceColor" class="th-input" data-preview="textPreview"></div>
+                <div class="theme-field"><label>Page Background</label><input type="color" id="th_ThemeBgColor" class="th-input" data-preview="textPreview"></div>
+                <div class="theme-field"><label>Border / Divider Color</label><input type="color" id="th_ThemeBorderColor" class="th-input" data-preview="textPreview"></div>
+              </div>
+              <div class="theme-preview" id="textPreview">
+                <div class="theme-preview-label">PREVIEW (THIS IS THE REAL COMBINATION)</div>
+                <div class="tp-text-outer">
+                  <div class="tp-text-card">
+                    <div class="tp-text-heading">Low Back Pain</div>
+                    <div class="tp-text-muted">Visit PAF-000123 &bull; 17 Sep 2026</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CHART COLORS -->
+          <div class="theme-section">
+            <h4>Chart &amp; Number Card Colors</h4>
+            <p>Used in order for every bar/pie/donut chart on the Dashboard (and any custom chart you build). The first 2 colors also drive the Dashboard's KPI number cards, and are offered as the default color when you build a new chart.</p>
+            <div class="theme-section-body">
+              <div class="theme-fields theme-fields-chart">
+                <div class="theme-chart-swatches" id="themeChartSwatches"></div>
+              </div>
+              <div class="theme-preview" id="chartPreview">
+                <div class="theme-preview-label">CHART PREVIEW</div>
+                <div class="tp-chart-bars" id="tpChartBars"></div>
+                <div class="theme-preview-label" style="margin-top:10px;">NUMBER CARD PREVIEW</div>
+                <div class="tp-number-cards" id="tpNumberCards"></div>
+              </div>
+            </div>
+          </div>
+
           <div class="modal-actions" style="margin-top:16px;">
-            <button id="resetThemeBtn" class="btn btn-outline btn-sm">Reset to Default</button>
+            <button id="resetThemeBtn" class="btn btn-outline btn-sm">Reset to Default Theme</button>
             <button id="saveThemeBtn" class="btn btn-primary btn-sm">Save Theme</button>
           </div>
           <div id="themeStatus" class="biller-status"></div>
         </div>
-
         <!-- DATABASE TAB -->
         <div id="tab-database" class="admin-pane">
-          <div class="dash-grid" id="dbStatusGrid"></div>
-          <div class="table-scroll" style="margin-top:16px;">
-            <table class="biller-table">
-              <thead><tr><th>Sheet</th><th>Rows</th><th>Columns</th><th>Cells Used</th></tr></thead>
-              <tbody id="dbStatusTableBody"></tbody>
-            </table>
+          <div class="ds-panel">
+            <div class="ds-panel-head">
+              <h4>Database(s) Status</h4>
+              <button type="button" class="btn btn-outline btn-sm" id="checkDataStatusBtn">&#8635; Refresh</button>
+            </div>
+            <div id="dataStatusResult">
+              <div class="ds-loading">Enter your Super Admin credentials above, then click Refresh to view database status.</div>
+            </div>
+            <div class="ds-actions">
+              <button type="button" class="btn btn-primary btn-sm" id="addNewDatabaseBtn">&#10133; Add New Database Now</button>
+              <button type="button" class="btn btn-outline btn-sm ds-danger-btn" id="resetToActiveOnlyBtn">&#9888;&#65039; Reset Numbering &amp; Forget Old Archives</button>
+            </div>
+            <div id="dbExpandResult" style="display:none;margin-top:12px;font-size:12.5px;color:var(--ink-soft);line-height:1.6;background:var(--bg);border-radius:var(--radius-sm);padding:10px 12px;"></div>
+            <p class="ds-note">
+              Visit and Issue numbers are tracked by this app separately from the spreadsheet itself - that's
+              deliberate, it's what lets numbering carry on smoothly across an "Add New Database" switch without
+              restarting. <b>Add New Database Now</b> creates a brand-new spreadsheet, copies your clinic settings,
+              physiotherapist accounts, issues list and patients into it, archives the current one as read-only
+              patient-visit history, and switches every new record there - immediately, with no Apps Script editor
+              involved. <b>Reset Numbering &amp; Forget Old Archives</b> is only for fixing numbering after manually
+              editing the sheet, or undoing a test switch - it does not delete any spreadsheet or any row.
+            </p>
           </div>
-          <button id="refreshDbStatusBtn" class="btn btn-outline btn-sm" style="margin-top:12px;">&#128260; Refresh Status</button>
         </div>
 
         <!-- MY LOGIN TAB -->
@@ -714,6 +988,17 @@
     <div class="form-grid">
       <div class="field span-2"><label>Name</label><input id="pm_name" type="text"></div>
       <div class="field span-2"><label>Password</label><input id="pm_password" type="password" placeholder="Leave blank to keep unchanged (edit mode)"></div>
+      <div class="field span-2">
+        <label>Signature Image URL <span class="field-hint-inline">(optional - same idea as the App Logo URL in Clinic Details)</span></label>
+        <input id="pm_signatureUrl" type="text" placeholder="https://... link to a PNG of their signature">
+      </div>
+    </div>
+    <div class="sig-preview-row" style="margin-top:8px;">
+      <div class="sig-preview-box" style="width:150px;height:60px;">
+        <img id="pm_signaturePreview" class="sig-preview-img" style="display:none;">
+        <span id="pm_signatureEmpty" class="sig-preview-empty">No signature set</span>
+      </div>
+      <p class="field-hint" style="margin:0;">Super Admin can set this directly here, or the physiotherapist can upload their own from My Login after they log in - either way updates the same field.</p>
     </div>
     <div id="physioModalStatus" class="biller-status"></div>
     <div class="modal-actions">

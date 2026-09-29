@@ -365,6 +365,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 .view { display: none; padding: 22px; }
 .view.active { display: block; }
+/* Point 2 fix: the record-preview view is now its own independent top-level
+   .view section (not nested inside New Assessment) - it needs no extra
+   layout rules of its own since .view/.view-header already cover it, this
+   selector just documents the intent for anyone editing this file later. */
+.record-preview-section { }
 
 .view-header {
   display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
@@ -1402,11 +1407,32 @@ details > summary:hover { color: var(--primary); }
 .mark-tool-custom input[type=color] { width: 32px; height: 32px; border: none; border-radius: 6px; padding: 0; cursor: pointer; }
 
 .body-diagrams { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
-.body-view { width: 150px; text-align: center; }
+.body-view { width: 190px; text-align: center; }
 .body-view-label { font-size: 11px; font-weight: 700; color: var(--ink-soft); margin-top: 4px; text-transform: uppercase; letter-spacing: .3px; }
-.body-svg-holder { border: 1.5px solid var(--line); border-radius: var(--radius-md); background: #fcfcfb; cursor: crosshair; }
-.body-svg-holder svg { width: 100%; height: auto; display: block; }
-.body-mark-dot { cursor: pointer; }
+
+/* The image itself never changes - it's the clinic's own fixed reference
+   picture, loaded fresh from its real URL every time. ".body-img-inner"
+   shrink-wraps exactly to the image's own rendered box (via inline-block),
+   so percentage-based dot positions line up perfectly even though the
+   outer ".body-img-holder" is a fixed height and centers a shorter or
+   taller image inside it. */
+.body-img-holder {
+  border: 1.5px solid var(--line); border-radius: var(--radius-md); background: #fcfcfb;
+  height: 300px; display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.body-img-inner { position: relative; display: inline-block; cursor: crosshair; line-height: 0; }
+.body-img-inner img { max-width: 100%; max-height: 296px; width: auto; height: auto; display: block; user-select: none; -webkit-user-drag: none; }
+.body-img-holder.img-broken { color: var(--muted); font-size: 11.5px; padding: 10px; }
+.body-img-holder.img-broken .body-img-inner img { display: none; }
+.body-img-holder.img-broken .body-img-inner::after {
+  content: "Image didn't load - check the URL in Admin Settings, or your internet connection.";
+  display: block; width: 130px; font-size: 11px; color: var(--muted); line-height: 1.4; padding: 10px;
+}
+.body-mark-dot {
+  position: absolute; width: 13px; height: 13px; border-radius: 50%; border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.25), 0 1px 3px rgba(0,0,0,0.35);
+  transform: translate(-50%, -50%); cursor: pointer;
+}
 .body-legend { display: flex; gap: 16px; justify-content: center; font-size: 12px; margin-top: 10px; }
 .body-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
 
@@ -1425,7 +1451,11 @@ details > summary:hover { color: var(--primary); }
 #patientMatchHint.match-found { color: var(--success); font-weight: 600; }
 #patientMatchHint.match-new { color: var(--muted); }
 
-/* ---------- Printed / previewed assessment document ---------- */
+/* ---------- Printed / previewed assessment document ----------
+   Point 8: these class names are kept IDENTICAL to the server-side markup
+   built by buildAssessmentHtmlForPdf_ in Code.gs, so the on-screen preview,
+   the browser's own Print/Save-as-PDF (built from #printSnapshot) and the
+   server-generated PDF used for email are all the same document. */
 .doc-scale-outer { overflow: hidden; }
 .doc-scale-inner { width: 800px; max-width: none; transform-origin: top left; }
 @media print { .doc-scale-outer { overflow: visible; height: auto !important; } .doc-scale-inner { transform: none !important; width: auto; } }
@@ -1433,45 +1463,86 @@ details > summary:hover { color: var(--primary); }
 .doc-paper {
   background: var(--paper); border-radius: var(--radius-md); box-shadow: var(--shadow-md);
   padding: 24px 26px; max-height: 80vh; overflow-y: auto; border: 1px solid var(--line);
-  font-family: var(--theme-bill-font);
+  font-family: var(--theme-bill-font); color: #000000; line-height: 1.5;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact;
 }
-#printSnapshot { position: absolute; left: 0; top: -9999px; width: 800px; font-family: var(--theme-bill-font); }
+#printSnapshot {
+  position: absolute; left: 0; top: -9999px; width: 800px; font-family: var(--theme-bill-font);
+  color: #000000; line-height: 1.5;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact;
+}
 
-.doc-header { display: flex; gap: 14px; align-items: center; border-bottom: 2px solid var(--theme-bill-header); padding-bottom: 8px; margin-bottom: 10px; }
-.doc-logo { width: var(--theme-bill-logo-w); height: var(--theme-bill-logo-h); object-fit: contain; border-radius: 4px; background: #fff; flex-shrink: 0; }
-.doc-company-name { font-size: 19px; font-weight: 800; color: var(--theme-bill-header); }
-.doc-company-info { font-size: 11px; color: var(--muted); line-height: 1.5; }
-.doc-title-bar { color: #fff; text-align: center; font-weight: 800; letter-spacing: 1px; padding: 6px; font-size: 13px; border-radius: 5px; margin-bottom: 12px; background: var(--theme-bill-header); }
+/* Point 7: diagonal gradient header band, company-info text hardcoded white */
+.doc-header-band {
+  display: flex; gap: 14px; align-items: center; padding: 12px 16px; margin-bottom: 0;
+  background-image: linear-gradient(135deg, var(--theme-bill-header) 0%, var(--theme-bill-header-to) 100%);
+}
+.doc-logo { width: var(--theme-bill-logo-w); height: var(--theme-bill-logo-h); object-fit: contain; border-radius: 4px; flex-shrink: 0; }
+.doc-header-text { color: #FFFFFF; }
+.doc-company-name { font-size: 19px; font-weight: 800; color: #FFFFFF; }
+.doc-company-info { font-size: 11px; color: #FFFFFF; line-height: 1.5; }
+.doc-title-bar {
+  color: #fff; text-align: center; font-weight: 800; letter-spacing: 1px; padding: 6px; font-size: 13px; margin-bottom: 12px;
+  background-image: linear-gradient(135deg, var(--theme-bill-header) 0%, var(--theme-bill-header-to) 100%);
+}
 
+.doc-page { padding-top: 4px; }
+.doc-section { page-break-inside: avoid; break-inside: avoid; margin-bottom: 10px; }
+/* ROM/MMT opt OUT of page-break-inside:avoid - see matching comment in
+   Code.gs's docPrintCss_: avoiding a break inside a table taller than the
+   remaining page pushes it whole onto the next page, leaving a large blank
+   gap behind (this was the "huge blank space" bug). Rows still avoid
+   splitting individually (rules below), and the header repeats if it does. */
+.doc-section.flow { page-break-inside: auto; break-inside: auto; }
 .section-band { padding: 5px 10px; font-weight: 800; font-size: 12.5px; margin: 16px 0 8px; border-radius: 5px; background: var(--primary-soft); color: var(--ink); }
-.doc-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 22px; }
-.doc-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px 22px; }
-.doc-grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 5px 22px; }
-.doc-field { font-size: 12.5px; padding: 3px 0; }
+
+/* Point 6: fields grouped into same-line flexbox rows instead of one-below-another */
+.doc-row { display: flex; flex-wrap: wrap; gap: 5px 22px; margin-bottom: 3px; }
+.doc-row.cols-1 > .doc-field, .doc-row.cols-1 > div { flex: 1 1 100%; }
+.doc-row.cols-2 > .doc-field, .doc-row.cols-2 > div { flex: 1 1 calc(50% - 22px); min-width: 200px; }
+.doc-row.cols-3 > .doc-field, .doc-row.cols-3 > div { flex: 1 1 calc(33.333% - 22px); min-width: 160px; }
+.doc-row.cols-4 > .doc-field, .doc-row.cols-4 > div { flex: 1 1 calc(25% - 22px); min-width: 140px; }
+
+.doc-field { font-size: 12.5px; padding: 3px 0; line-height: 1.5; }
 .doc-field .fl-label { font-weight: 800; }
-.doc-list { margin: 3px 0 10px; padding-left: 18px; font-size: 12.5px; }
-.doc-notes-box { border: 1px solid var(--line); min-height: 90px; padding: 8px 10px; font-size: 12.5px; border-radius: 6px; white-space: pre-wrap; }
-.doc-footer-row { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 24px; }
-.doc-sig-block { text-align: center; }
-.doc-sig-img { max-width: 150px; max-height: 60px; display: block; margin: 0 auto 6px; }
-.doc-sig-line { width: 150px; border-bottom: 1px solid var(--ink); height: 46px; }
-.doc-sig-caption { font-size: 11px; }
-.doc-record-ids { font-size: 9.5px; color: var(--muted); margin-top: 16px; }
-.doc-tagline { text-align: center; font-style: italic; color: var(--theme-bill-header); font-size: 11px; margin-top: 6px; }
-.doc-page-break { page-break-before: always; margin-top: 22px; padding-top: 16px; border-top: 2px dashed var(--line); }
+/* The printed/previewed document's own VAS scale (distinct from .vas-scale,
+   which is the live editable slider on the New Assessment form) - mirrors
+   Code.gs's docPrintCss_ exactly (.vas-row/.vas-num/.vas-active). */
+.vas-row { display: flex; justify-content: space-between; max-width: 420px; margin: 6px 0 10px; font-size: 11px; }
+.vas-num { width: 18px; height: 18px; border: 1px solid #999; border-radius: 50%; text-align: center; line-height: 18px; display: inline-flex; align-items: center; justify-content: center; }
+.vas-active { background-color: #d1352f; color: #fff; border-color: #d1352f; font-weight: 700; }
+.pmh-row { font-size: 12px; margin-bottom: 6px; }
+.pmh-item { margin-right: 14px; }
+.pmh-item .chk { font-size: 14px; }
+.doc-paper .muted, #printSnapshot .muted { color: var(--muted); font-style: italic; }
+.doc-list { margin: 3px 0 10px; padding-left: 18px; font-size: 12.5px; line-height: 1.5; }
+.notes-box { border: 1px solid var(--line); min-height: 90px; padding: 8px 10px; font-size: 12.5px; border-radius: 6px; white-space: pre-wrap; line-height: 1.5; }
+.doc-footer-section.footer-row { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 24px; }
+.sig-block { text-align: center; }
+.sig-img { max-width: 150px; max-height: 60px; display: block; margin: 0 auto 6px; }
+.sig-line { width: 150px; border-bottom: 1px solid var(--ink); height: 46px; }
+.sig-caption { font-size: 11px; }
+.doc-footer-section.record-ids { font-size: 9.5px; color: var(--muted); margin-top: 16px; }
+.doc-footer-section.tagline { text-align: center; font-style: italic; font-size: 11px; margin-top: 6px; }
 
-table.doc-rom-table, table.doc-special-table { border-collapse: collapse; width: 100%; font-size: 11.5px; margin-bottom: 10px; }
-table.doc-rom-table th, table.doc-rom-table td, table.doc-special-table th, table.doc-special-table td { border: 1px solid var(--line); padding: 4px 7px; text-align: left; }
-table.doc-rom-table .num, table.doc-special-table .num { text-align: center; width: 70px; }
-.doc-rom-joint { font-weight: 700; background: var(--bg); vertical-align: middle; }
+table.rom-table, table.special-tests-table { border-collapse: collapse; width: 100%; font-size: 11.5px; margin-bottom: 10px; }
+table.rom-table th, table.rom-table td, table.special-tests-table th, table.special-tests-table td { border: 1px solid var(--line); padding: 4px 7px; text-align: left; }
+table.rom-table .num, table.special-tests-table .num { text-align: center; width: 70px; }
+.rom-joint { font-weight: 700; background: var(--bg); vertical-align: middle; }
 
-.doc-body-diagrams { display: flex; gap: 8px; justify-content: space-between; margin-bottom: 8px; }
+.doc-body-diagrams { display: flex; gap: 8px; justify-content: space-around; margin-bottom: 8px; }
 .doc-body-view { text-align: center; width: 23%; }
-.doc-body-view svg { width: 100%; height: auto; }
-.doc-body-view-label { font-size: 9.5px; font-weight: 700; color: var(--muted); }
+.doc-body-img-wrap { position: relative; display: inline-block; line-height: 0; max-width: 100%; }
+.doc-body-img-wrap img { max-width: 100%; max-height: 210px; width: auto; height: auto; display: block; margin: 0 auto; }
+.doc-mark-dot {
+  position: absolute; width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.25); transform: translate(-50%, -50%);
+}
+.doc-body-view-label { font-size: 9.5px; font-weight: 700; color: var(--muted); margin-top: 4px; }
 
 .preview-actions-buttons { display: flex; gap: 8px; }
 .badge-ok { background: var(--success-soft); color: var(--success); }
+.badge-archived { background: var(--surface); color: var(--muted); border: 1px solid var(--line); }
 
 /* ---------- Lookup / Find-Edit results ---------- */
 .lookup-results { margin-top: 16px; }
@@ -1486,17 +1557,142 @@ table.doc-rom-table .num, table.doc-special-table .num { text-align: center; wid
 .issue-add-row { display: flex; gap: 8px; margin-bottom: 14px; max-width: 420px; }
 .issue-add-row input { flex: 1; padding: 9px 11px; border: 1.5px solid var(--line); border-radius: var(--radius-sm); }
 
-.theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
-.theme-item { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px 12px; }
-.theme-item label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .3px; }
-.theme-item input[type=color] { width: 100%; height: 34px; border: none; border-radius: 6px; padding: 0; cursor: pointer; }
-.theme-item select, .theme-item input[type=text] { width: 100%; padding: 8px 9px; border: 1px solid var(--line); border-radius: 6px; }
+/* ---------- Theme tab: sectioned layout with live previews ---------- */
+.theme-section { border: 1px solid var(--line); border-radius: var(--radius-md); padding: 16px 18px; margin-bottom: 18px; background: var(--surface); }
+.theme-section h4 { margin: 0 0 4px; font-size: 14.5px; color: var(--ink); text-transform: uppercase; letter-spacing: .3px; }
+.theme-section > p { margin: 0 0 14px; font-size: 12px; color: var(--muted); line-height: 1.5; max-width: 900px; }
+.theme-section-body { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .theme-section-body { grid-template-columns: 1fr; } }
+
+.theme-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.theme-field label { display: block; font-size: 10.5px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .3px; }
+.theme-field input[type=color] { width: 100%; height: 32px; border: 1px solid var(--line); border-radius: 6px; padding: 0; cursor: pointer; background: none; }
+.theme-field select { width: 100%; padding: 7px 8px; border: 1px solid var(--line); border-radius: 6px; font-size: 12.5px; }
+
+.theme-preview { background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 12px; }
+.theme-preview-label { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: .4px; margin-bottom: 8px; }
+
+.theme-subrow { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--line); }
+.theme-subrow-label { display: block; font-size: 10.5px; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .3px; }
+.theme-logo-size-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.th-logo-num { width: 70px; padding: 7px 8px; border: 1px solid var(--line); border-radius: 6px; }
+.theme-style-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 640px) { .theme-style-cols { grid-template-columns: 1fr; } }
+.theme-checkbox { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; margin-right: 14px; color: var(--ink-soft); }
+
+.theme-chart-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+.theme-chart-swatches input[type=color] { width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 8px; padding: 0; cursor: pointer; }
+
+/* ---------- Database(s) Status panel - Add New Database, capacity bars ---------- */
+.ds-panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 18px 20px; }
+.ds-panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.ds-panel-head h4 { margin: 0; font-size: 14.5px; text-transform: uppercase; letter-spacing: .3px; color: var(--ink); }
+.ds-loading { font-size: 13px; color: var(--muted); padding: 10px 0; }
+.ds-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+.ds-danger-btn { border-color: var(--danger-soft); color: var(--danger); }
+.ds-danger-btn:hover { background: var(--danger-soft); }
+.ds-note { font-size: 11.5px; color: var(--muted); line-height: 1.6; margin: 14px 0 0; padding-top: 14px; border-top: 1px dashed var(--line); }
+.ds-note b { color: var(--ink-soft); }
+
+.ds-db-list { display: flex; flex-direction: column; gap: 12px; }
+.ds-db-card { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 14px 16px; background: var(--bg); }
+.ds-db-card.ds-unreachable { opacity: .7; border-style: dashed; }
+.ds-db-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.ds-db-badge { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; padding: 3px 10px; border-radius: 999px; }
+.ds-db-badge.active { background: var(--success-soft); color: var(--success); }
+.ds-db-badge.archived { background: var(--surface); color: var(--muted); border: 1px solid var(--line); }
+.ds-db-name { font-weight: 700; font-size: 13.5px; color: var(--ink); }
+.ds-db-name a { color: inherit; text-decoration: none; }
+.ds-db-name a:hover { text-decoration: underline; }
+.ds-db-label { font-size: 11.5px; color: var(--muted); }
+
+.ds-db-progress-track { height: 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); overflow: hidden; margin: 8px 0 6px; }
+.ds-db-progress-fill { height: 100%; border-radius: 999px; transition: width .3s ease; }
+.ds-db-progress-fill.ok { background: #4CAF6D; }
+.ds-db-progress-fill.warn { background: #E8A93E; }
+.ds-db-progress-fill.crit { background: var(--danger); }
+.ds-db-progress-text { font-size: 11.5px; color: var(--muted); display: flex; justify-content: space-between; }
+
+.ds-db-rows { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 10px; font-size: 12px; color: var(--ink-soft); }
+.ds-db-rows b { color: var(--ink); }
+.ds-db-next { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+
+/* --- live preview mockups --- */
+.tp-login-bg { border-radius: 10px; padding: 22px; display: flex; align-items: center; justify-content: center; }
+.tp-login-card { border-radius: 8px; padding: 14px 22px; text-align: center; box-shadow: 0 4px 14px rgba(0,0,0,.12); }
+.tp-login-logo { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg,#a8d339,#2778b7); margin: 0 auto 6px; }
+.tp-login-name { font-weight: 800; font-size: 13px; }
+.tp-login-sub { font-size: 10px; }
+
+.tp-sidebar { border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+.tp-sidebar-item { padding: 8px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; }
+.tp-sidebar-item.tp-active { font-weight: 700; }
+
+.tp-btn-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+.tp-btn-fill, .tp-btn-outline { padding: 8px 14px; border-radius: 999px; font-size: 12px; font-weight: 700; display: inline-block; }
+.tp-btn-outline { background: transparent; border: 1.5px solid; }
+
+.tp-page-heading { font-size: 18px; font-weight: 800; margin-bottom: 3px; }
+.tp-page-sub { font-size: 11.5px; margin-bottom: 10px; }
+.tp-section-heading { font-size: 12.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .3px; }
+
+.tp-tabs { display: flex; gap: 18px; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+.tp-tab { font-size: 12.5px; font-weight: 600; padding-bottom: 8px; }
+.tp-tab-active { font-weight: 800; border-bottom: 2px solid; margin-bottom: -9px; }
+
+.tp-gate { padding: 12px 14px; border-radius: 8px; border: 1.5px dashed; font-weight: 700; font-size: 12.5px; }
+
+.tp-doc-header { display: flex; align-items: center; gap: 10px; border-bottom: 2px solid; padding-bottom: 8px; margin-bottom: 8px; }
+.tp-doc-logo { width: 40px; height: 40px; border: 1px dashed var(--line); display: flex; align-items: center; justify-content: center; font-size: 8px; color: var(--muted); flex-shrink: 0; border-radius: 4px; }
+.tp-doc-name { font-weight: 800; font-size: 13px; }
+.tp-doc-info { font-size: 9.5px; color: var(--muted); }
+.tp-doc-id { margin-left: auto; font-weight: 700; font-size: 12px; }
+.tp-doc-band { padding: 4px 8px; font-weight: 800; font-size: 10.5px; border-radius: 4px; margin-bottom: 6px; }
+.tp-doc-field { font-size: 11px; }
+.tp-doc-fl { font-weight: 800; } .tp-doc-fv {}
+
+.tp-text-outer { padding: 14px; border-radius: 8px; }
+.tp-text-card { padding: 12px 14px; border-radius: 8px; }
+.tp-text-heading { font-weight: 800; font-size: 13px; margin-bottom: 3px; }
+.tp-text-muted { font-size: 11px; }
+
+.tp-chart-bars { display: flex; align-items: flex-end; gap: 8px; height: 70px; }
+.tp-chart-bars span { width: 16px; border-radius: 4px 4px 0 0; display: inline-block; }
+.tp-number-cards { display: flex; gap: 8px; flex-wrap: wrap; }
+.tp-number-cards span { width: 54px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; color: #fff; }
+
 
 .sig-upload-row { display: flex; align-items: center; gap: 16px; margin: 10px 0; }
 .sig-preview { width: 150px; height: 60px; object-fit: contain; border: 1px dashed var(--line); border-radius: 6px; background: #fff; }
 
-.dash-filter-bar { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
-.dash-filter-bar .field { margin-bottom: 0; }
+.sig-preview-row { display: flex; align-items: center; gap: 18px; }
+.sig-preview-box {
+  width: 220px; height: 84px; border: 1.5px dashed var(--line); border-radius: var(--radius-md);
+  background: #fcfcfb; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.sig-preview-img { max-width: 92%; max-height: 80%; object-fit: contain; }
+.sig-preview-empty { font-size: 12px; color: var(--muted); text-align: center; padding: 0 12px; }
+.sig-preview-caption { font-size: 13px; color: var(--ink-soft); }
+.sig-preview-caption b { color: var(--ink); }
+.sig-preview-caption .warn { color: #b8860b; }
+
+/* ---------- Per-widget dashboard filters (point 4) - each KPI/chart card
+   gets its own independent Filter By / Filter Value / Date Range controls,
+   never a single global filter bar. ---------- */
+.dash-card-filterable { flex-wrap: wrap; }
+.dash-card-filters {
+  flex-shrink: 0; width: 190px; border-left: 1px solid var(--line); padding-left: 16px;
+  display: flex; flex-direction: column; gap: 8px; justify-content: center;
+}
+@media (max-width: 720px) { .dash-card-filterable { flex-direction: column; } .dash-card-filters { width: 100%; border-left: none; border-top: 1px solid var(--line); padding-left: 0; padding-top: 12px; } }
+.dcf-row { display: flex; flex-direction: column; gap: 4px; }
+.dcf-pill {
+  align-self: flex-start; font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .3px;
+  background: var(--primary-soft); color: var(--primary-dark); padding: 3px 9px; border-radius: 999px;
+}
+.dcf-row select, .dcf-row input[type=date] { width: 100%; padding: 6px 7px; border: 1px solid var(--line); border-radius: 6px; font-size: 11.5px; }
+.dcf-daterange { display: flex; gap: 5px; }
+.dcf-daterange input { min-width: 0; flex: 1; }
 
 /* ---------- Toast host ---------- */
 .toast-host { position: fixed; top: 18px; right: 18px; z-index: 900; display: flex; flex-direction: column; gap: 8px; }
@@ -1510,18 +1706,26 @@ table.doc-rom-table .num, table.doc-special-table .num { text-align: center; wid
 .modal-box-lg { max-width: 700px; }
 .email-preview-frame { width: 100%; height: 420px; border: 1px solid var(--line); border-radius: var(--radius-sm); }
 
-/* ---------- Print rules for the assessment document ---------- */
+/* ---------- Print rules for the assessment document ----------
+   Point 3/4/7/8: print-color-adjust:exact is the critical fix that makes
+   the header gradient and the body-diagram mark colors survive Chrome's
+   own Print/Save-as-PDF pipeline - without it, Chrome silently drops
+   background colors by default no matter what CSS sets them. */
 @media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
   body[data-print-target="printSnapshot"] #printSnapshot,
   body[data-print-target="printSnapshot"] #printSnapshot * { visibility: visible; }
   body[data-print-target="printSnapshot"] #printSnapshot {
-    position: absolute; left: 0; top: 0; width: 100%;
+    position: absolute; left: 0; top: 0; width: 800px;
     box-shadow: none !important; border: none !important; border-radius: 0 !important;
     max-height: none !important; height: auto !important; overflow: visible !important;
-    padding: 3mm 4mm 5mm 4mm !important;
   }
   body[data-print-target="printSnapshot"] #printSnapshot * { max-height: none !important; overflow: visible !important; }
-  table.doc-rom-table thead, table.doc-special-table thead { display: table-header-group; }
-  table.doc-rom-table tr, table.doc-special-table tr { page-break-inside: avoid; }
-  .doc-footer-row { page-break-inside: avoid; }
+  table.rom-table thead, table.special-tests-table thead { display: table-header-group; }
+  table.rom-table tr, table.special-tests-table tr { page-break-inside: avoid; }
+  .doc-section, .doc-footer-section.footer-row { page-break-inside: avoid; }
 }

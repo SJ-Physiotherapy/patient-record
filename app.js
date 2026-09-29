@@ -174,13 +174,25 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
 // -------------------------------------------------------------------------
 // 5. NAVIGATION
 // -------------------------------------------------------------------------
+// Switches which .view section is showing and resets scroll to the top -
+// without this, a view switch after scrolling deep into a long form (e.g.
+// New Assessment) leaves the newly-shown view scrolled out of sight until
+// the user manually scrolls up, which looked like a blank screen.
+function switchToView_(viewId) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const target = document.getElementById(viewId);
+  if (target) target.classList.add('active');
+  document.getElementById('sidebar').classList.remove('open');
+  window.scrollTo(0, 0);
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+}
+
 document.querySelectorAll('.nav-item').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    document.getElementById('view-' + btn.dataset.view).classList.add('active');
-    document.getElementById('sidebar').classList.remove('open');
+    switchToView_('view-' + btn.dataset.view);
     if (btn.dataset.view === 'dashboard') loadDashboard();
     if (btn.dataset.view === 'reports') loadReport(reportState.active);
     if (btn.dataset.view === 'admin') loadAdminTabData_();
@@ -203,70 +215,16 @@ function checked_(id) { const e = el_(id); return !!(e && e.checked); }
 function setChecked_(id, v) { const e = el_(id); if (e) e.checked = !!v; }
 
 // -------------------------------------------------------------------------
-// 7. BODY OUTLINE ARTWORK - must stay pixel-identical to BODY_SVG_FRONT /
-//    BODY_SVG_BACK / BODY_SVG_SIDE in Code.gs, since the same coordinates
-//    are used to place marks both on screen and in the printed PDF.
+// 7. BODY VIEW IMAGES - the clinic's own real reference photos/artwork,
+//    used exactly as provided. Must stay identical to BODY_VIEW_IMAGES in
+//    Code.gs, since the same percentage coordinates place a mark on top of
+//    the same image both on screen and in the printed PDF.
 // -------------------------------------------------------------------------
-const BODY_SVG_FRONT = `
-  <g fill="none" stroke="#3a4a48" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round">
-    <ellipse cx="100" cy="32" rx="18" ry="22"/>
-    <path d="M82,30 q-4,2 -2,7"/>
-    <path d="M118,30 q4,2 2,7"/>
-    <path d="M92,51 L92,64 Q100,69 108,64 L108,51"/>
-    <path d="M92,66 Q66,70 52,82 Q42,91 38,108 Q34,128 35,150 Q36,168 28,182 Q18,198 15,214 Q13,226 16,236 Q19,244 27,244 Q34,243 37,235 Q44,218 47,200 Q51,178 55,158 Q58,142 58,124 Q58,104 63,90"/>
-    <path d="M16,236 Q10,240 10,248 Q10,256 18,258 Q26,259 28,251 Q29,246 27,244"/>
-    <path d="M108,66 Q134,70 148,82 Q158,91 162,108 Q166,128 165,150 Q164,168 172,182 Q182,198 185,214 Q187,226 184,236 Q181,244 173,244 Q166,243 163,235 Q156,218 153,200 Q149,178 145,158 Q142,142 142,124 Q142,104 137,90"/>
-    <path d="M184,236 Q190,240 190,248 Q190,256 182,258 Q174,259 172,251 Q171,246 173,244"/>
-    <path d="M92,66 Q64,71 55,90 Q49,104 50,122 Q51,148 58,158 Q95,172 100,172 Q105,172 142,158 Q149,148 150,122 Q151,104 145,90 Q136,71 108,66"/>
-    <path d="M58,158 Q54,178 56,196 Q58,212 66,222 L100,226 L134,222 Q142,212 144,196 Q146,178 142,158 Q100,172 58,158 Z"/>
-    <path d="M66,222 Q60,260 58,300 Q56,340 54,376 Q52,404 50,424 Q49,436 53,444 Q58,451 66,450 Q73,449 75,440 Q77,420 79,392 Q82,352 86,314 Q89,286 92,262 Q95,240 98,226 L100,226"/>
-    <path d="M134,222 Q140,260 142,300 Q144,340 146,376 Q148,404 150,424 Q151,436 147,444 Q142,451 134,450 Q127,449 125,440 Q123,420 121,392 Q118,352 114,314 Q111,286 108,262 Q105,240 102,226 L100,226"/>
-    <path d="M50,424 Q44,432 46,440 Q48,446 56,446" opacity="0.9"/>
-    <path d="M150,424 Q156,432 154,440 Q152,446 144,446" opacity="0.9"/>
-    <path d="M58,158 Q100,166 142,158" stroke-width="1.3" opacity="0.45"/>
-    <path d="M100,226 L100,262" stroke-width="1.3" opacity="0.45"/>
-  </g>`;
-
-const BODY_SVG_BACK = `
-  <g fill="none" stroke="#3a4a48" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round">
-    <ellipse cx="100" cy="32" rx="18" ry="22"/>
-    <path d="M100,10 L100,16" stroke-width="1.3" opacity="0.45"/>
-    <path d="M92,51 L92,64 Q100,69 108,64 L108,51"/>
-    <path d="M92,66 Q66,70 52,82 Q42,91 38,108 Q34,128 35,150 Q36,168 28,182 Q18,198 15,214 Q13,226 16,236 Q19,244 27,244 Q34,243 37,235 Q44,218 47,200 Q51,178 55,158 Q58,142 58,124 Q58,104 63,90"/>
-    <path d="M16,236 Q10,240 10,248 Q10,256 18,258 Q26,259 28,251 Q29,246 27,244"/>
-    <path d="M108,66 Q134,70 148,82 Q158,91 162,108 Q166,128 165,150 Q164,168 172,182 Q182,198 185,214 Q187,226 184,236 Q181,244 173,244 Q166,243 163,235 Q156,218 153,200 Q149,178 145,158 Q142,142 142,124 Q142,104 137,90"/>
-    <path d="M184,236 Q190,240 190,248 Q190,256 182,258 Q174,259 172,251 Q171,246 173,244"/>
-    <path d="M92,66 Q64,71 55,90 Q49,104 50,122 Q51,148 58,158 Q95,172 100,172 Q105,172 142,158 Q149,148 150,122 Q151,104 145,90 Q136,71 108,66"/>
-    <path d="M100,90 L100,150" stroke-width="1.3" opacity="0.4"/>
-    <path d="M58,158 Q54,178 56,196 Q58,212 66,222 L100,226 L134,222 Q142,212 144,196 Q146,178 142,158 Q100,172 58,158 Z"/>
-    <path d="M66,222 Q60,260 58,300 Q56,340 54,376 Q52,404 50,424 Q49,436 53,444 Q58,451 66,450 Q73,449 75,440 Q77,420 79,392 Q82,352 86,314 Q89,286 92,262 Q95,240 98,226 L100,226"/>
-    <path d="M134,222 Q140,260 142,300 Q144,340 146,376 Q148,404 150,424 Q151,436 147,444 Q142,451 134,450 Q127,449 125,440 Q123,420 121,392 Q118,352 114,314 Q111,286 108,262 Q105,240 102,226 L100,226"/>
-    <path d="M50,424 Q44,432 46,440 Q48,446 56,446" opacity="0.9"/>
-    <path d="M150,424 Q156,432 154,440 Q152,446 144,446" opacity="0.9"/>
-    <path d="M58,158 Q100,166 142,158" stroke-width="1.3" opacity="0.45"/>
-  </g>`;
-
-const BODY_SVG_SIDE = `
-  <g fill="none" stroke="#3a4a48" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round">
-    <path d="M92,14 Q78,16 76,32 Q75,44 82,52 Q84,55 83,60 L88,60 Q90,55 90,52 Q100,54 107,48 Q113,43 114,36 Q120,36 121,31 Q122,27 117,26 Q116,18 108,14 Q100,10 92,14 Z"/>
-    <path d="M84,60 L83,72 Q92,78 99,72 L98,61"/>
-    <path d="M99,68 Q116,74 122,90 Q126,104 122,118 Q119,130 122,142"/>
-    <path d="M83,72 Q66,78 60,96 Q56,112 60,128 Q62,140 58,152"/>
-    <path d="M118,88 Q132,96 136,112 Q140,128 134,146 Q130,162 132,178 Q134,192 128,202 Q123,210 114,208"/>
-    <path d="M132,178 Q140,182 140,192 Q140,200 132,201 Q125,201 124,194"/>
-    <path d="M122,142 Q126,152 122,164 Q118,176 106,182 L88,182 Q74,177 70,166 Q66,156 58,152"/>
-    <path d="M106,182 Q112,212 110,246 Q108,280 108,312 Q108,338 110,360 Q111,372 108,382"/>
-    <path d="M88,182 Q84,208 86,234 Q88,260 82,284 Q76,308 78,332 Q79,348 72,360"/>
-    <path d="M108,382 Q107,390 115,393 Q128,397 134,392 Q137,388 131,385 Q120,381 108,382 Z"/>
-    <path d="M72,360 Q68,368 70,376 Q72,383 81,383 Q87,383 88,377 Q89,370 84,364 Q79,359 72,360 Z"/>
-    <path d="M122,118 Q90,130 58,152" stroke-width="1.3" opacity="0.45"/>
-  </g>`;
-
 const BODY_VIEWS = [
-  { key: 'front', label: 'Front View', svg: BODY_SVG_FRONT, mirror: false },
-  { key: 'back', label: 'Back View', svg: BODY_SVG_BACK, mirror: false },
-  { key: 'right', label: 'Right Side View', svg: BODY_SVG_SIDE, mirror: false },
-  { key: 'left', label: 'Left Side View', svg: BODY_SVG_SIDE, mirror: true }
+  { key: 'front', label: 'Front View', url: 'http://sjphysiotherapy.in/patient-record/HUMAN%20AVATAR/Front-View.png' },
+  { key: 'back', label: 'Back View', url: 'http://sjphysiotherapy.in/patient-record/HUMAN%20AVATAR/Back-View.png' },
+  { key: 'right', label: 'Right Side View', url: 'http://sjphysiotherapy.in/patient-record/HUMAN%20AVATAR/Right-Facing-View.png' },
+  { key: 'left', label: 'Left Side View', url: 'http://sjphysiotherapy.in/patient-record/HUMAN%20AVATAR/Left-Facing-View.png' }
 ];
 
 // -------------------------------------------------------------------------
@@ -292,7 +250,10 @@ function applyTheme_(s) {
   root.setProperty('--theme-sidebar-text', s.ThemeSidebarText || '#FFFFFF');
   root.setProperty('--theme-nav-active-bg', s.ThemeNavActiveBg || '#FFFFFF');
   root.setProperty('--theme-nav-active-text', s.ThemeNavActiveText || s.ThemeButtonFrom || '#a8d339');
-  root.setProperty('--theme-bill-header', s.ThemeDocHeaderColor || '#04bd07');
+  root.setProperty('--theme-bill-header', s.ThemeDocHeaderColor || '#2778b7');
+  root.setProperty('--theme-bill-header-to', s.ThemeDocHeaderColorTo || '#a8d339');
+  root.setProperty('--theme-field-label', s.ThemeFieldLabelColor || '#2778b7');
+  root.setProperty('--theme-field-value', s.ThemeFieldValueColor || '#000000');
   root.setProperty('--theme-heading', s.ThemeHeadingColor || '#182322');
   root.setProperty('--theme-muted', s.ThemeMutedColor || '#4B5A57');
   root.setProperty('--theme-bg', s.ThemeBgColor || '#F6F4F3');
@@ -348,6 +309,22 @@ async function bootstrapApp() {
   renderGoalsPlan_();
   setVal_('f_date', todayStr_());
   state.bootstrapped = true;
+  checkCapacityAndWarn_();
+}
+
+// Proactive, non-blocking heads-up - the real enforcement (refusing to
+// save once the database is genuinely full) happens server-side in
+// apiSaveAssessment regardless of whether this toast was seen.
+async function checkCapacityAndWarn_() {
+  try {
+    const r = await apiGet('getCapacityStatus', {});
+    if (!r.ok) return;
+    if (r.blocked) {
+      toast('This database is full (' + r.percentUsed + '%). Ask Super Admin to add a new database from Admin Settings \u2192 Database before saving more records.', 'error');
+    } else if (r.warning) {
+      toast('Heads up: this database is ' + r.percentUsed + '% full. Super Admin can add a new one anytime from Admin Settings \u2192 Database.', '');
+    }
+  } catch (e) { /* non-critical - never block the app over this check */ }
 }
 
 function restoreSessionDisplay_() {
@@ -381,7 +358,43 @@ function applyRoleVisibility_() {
     el_('physioLockedField').style.display = 'none';
     el_('physioSignPasswordField').style.display = 'none';
   }
+  updateFormSignaturePreview_();
 }
+
+// -------------------------------------------------------------------------
+// PHYSIOTHERAPIST SIGNATURE PREVIEW (point 3) - shown live on the
+// assessment form itself, not just after saving, so whoever is signing can
+// see their signature will actually be attached before they commit. Pulled
+// straight from state.physios (refreshed from the server, never something
+// typed or drawn here) - a logged-in physio always sees their own; Super
+// Admin's preview follows whichever physiotherapist is picked in the
+// dropdown below.
+// -------------------------------------------------------------------------
+function currentFormPhysioId_() {
+  return state.session.role === 'physio' ? state.session.physioId : val_('f_physioId');
+}
+function updateFormSignaturePreview_() {
+  const img = el_('formSignaturePreview'), empty = el_('formSignatureEmpty'), caption = el_('formSignatureCaption');
+  if (!img) return; // panel not in the DOM yet (very first bootstrap tick)
+  const physioId = currentFormPhysioId_();
+  const physio = state.physios.find(p => p.physioId === physioId);
+
+  if (!physio) {
+    img.style.display = 'none'; empty.style.display = '';
+    empty.textContent = 'No physiotherapist selected yet';
+    caption.innerHTML = '';
+    return;
+  }
+  if (physio.signatureUrl) {
+    img.src = physio.signatureUrl; img.style.display = ''; empty.style.display = 'none';
+    caption.innerHTML = `This signature belongs to <b>${escapeHtml(physio.name)}</b> and will be added to the printed assessment sheet automatically.`;
+  } else {
+    img.style.display = 'none'; empty.style.display = '';
+    empty.textContent = 'No signature on file';
+    caption.innerHTML = `<span class="warn">${escapeHtml(physio.name)} hasn't uploaded a signature yet</span> - they can add one from Admin Settings &rarr; My Login. The record can still be saved without it.`;
+  }
+}
+el_('f_physioId').addEventListener('change', updateFormSignaturePreview_);
 
 function populateStaticDropdowns_() {
   const howKnowSel = el_('f_howKnow');
@@ -393,6 +406,7 @@ function populateStaticDropdowns_() {
   const physioSel = el_('f_physioId');
   physioSel.innerHTML = '<option value="">Select physiotherapist...</option>' +
     state.physios.filter(p => p.active).map(p => `<option value="${escapeHtml(p.physioId)}">${escapeHtml(p.name)} (${escapeHtml(p.physioId)})</option>`).join('');
+  updateFormSignaturePreview_();
 }
 
 // -------------------------------------------------------------------------
@@ -448,15 +462,24 @@ function renderVasScale_(active) {
 }
 
 // -------------------------------------------------------------------------
-// 12. BODY DIAGRAMS - interactive pain map (point 5 & 21)
+// 12. BODY DIAGRAMS - interactive pain map (point 5 & 21), drawn on top of
+//     the clinic's real reference images. A mark is stored as nothing more
+//     than {view, x%, y%, type, color} - never a picture - and redrawn as a
+//     small absolutely-positioned dot over the image, at whatever size the
+//     image happens to render at. Since dedicated Left/Right images are
+//     used, no mirroring math is needed anywhere.
 // -------------------------------------------------------------------------
 function initBodyDiagrams_() {
   state.form.painMarks = [];
   const wrap = el_('bodyDiagramsWrap');
   wrap.innerHTML = BODY_VIEWS.map(v => `
     <div class="body-view">
-      <div class="body-svg-holder" data-view="${v.key}">
-        <svg viewBox="0 0 200 480" class="body-svg-base" style="${v.mirror ? 'transform:scaleX(-1)' : ''}">${v.svg}</svg>
+      <div class="body-img-holder" data-view="${v.key}">
+        <span class="body-img-inner">
+          <img src="${v.url}" alt="${v.label}" draggable="false"
+               onload="redrawAllMarks_()"
+               onerror="this.closest('.body-img-holder').classList.add('img-broken')">
+        </span>
       </div>
       <div class="body-view-label">${v.label}</div>
     </div>`).join('') + `
@@ -465,8 +488,8 @@ function initBodyDiagrams_() {
       <span><i style="background:#2778b7"></i> Radiating Point</span>
     </div>`;
 
-  wrap.querySelectorAll('.body-svg-holder').forEach(holder => {
-    holder.addEventListener('click', e => onBodyDiagramClick_(e, holder));
+  wrap.querySelectorAll('.body-img-inner').forEach(inner => {
+    inner.addEventListener('click', e => onBodyDiagramClick_(e, inner));
   });
 
   // Marker-color toolbar
@@ -487,16 +510,7 @@ function initBodyDiagrams_() {
   });
 }
 
-function onBodyDiagramClick_(e, holder) {
-  const svg = holder.querySelector('svg');
-  const rect = svg.getBoundingClientRect();
-  let xPx = e.clientX - rect.left;
-  const view = holder.dataset.view;
-  const isMirrored = view === 'left';
-  if (isMirrored) xPx = rect.width - xPx; // undo the CSS mirror so stored % is anatomically consistent
-  const xPct = Math.max(0, Math.min(100, (xPx / rect.width) * 100));
-  const yPct = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
-
+function onBodyDiagramClick_(e, inner) {
   // Clicking an existing dot removes it instead of adding a new one.
   const clickedDot = e.target.closest('.body-mark-dot');
   if (clickedDot) {
@@ -506,22 +520,32 @@ function onBodyDiagramClick_(e, holder) {
     return;
   }
 
+  const img = inner.querySelector('img');
+  if (!img || !img.complete || !img.naturalWidth) return; // image still loading - nothing reliable to click on yet
+  const rect = inner.getBoundingClientRect(); // exactly the rendered image box - inner shrink-wraps to it
+  if (!rect.width || !rect.height) return;
+  const view = inner.closest('.body-img-holder').dataset.view;
+  const xPct = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+  const yPct = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+
   state.form.painMarks.push({ view: view, x: Math.round(xPct * 10) / 10, y: Math.round(yPct * 10) / 10, type: state.form.activeMarkType, color: state.form.activeMarkColor });
   redrawAllMarks_();
 }
 
 function redrawAllMarks_() {
-  document.querySelectorAll('.body-svg-holder').forEach(holder => {
-    const view = holder.dataset.view;
-    holder.querySelectorAll('.body-mark-dot').forEach(d => d.remove());
-    const svg = holder.querySelector('svg');
+  document.querySelectorAll('.body-img-inner').forEach(inner => {
+    const view = inner.closest('.body-img-holder').dataset.view;
+    inner.querySelectorAll('.body-mark-dot').forEach(d => d.remove());
     state.form.painMarks.forEach((m, idx) => {
       if (m.view !== view) return;
-      const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      c.setAttribute('cx', m.x * 2); c.setAttribute('cy', m.y * 4.8); c.setAttribute('r', '5');
-      c.setAttribute('fill', m.color); c.setAttribute('stroke', '#fff'); c.setAttribute('stroke-width', '1.2');
-      c.setAttribute('class', 'body-mark-dot'); c.dataset.idx = idx;
-      svg.appendChild(c);
+      const dot = document.createElement('span');
+      dot.className = 'body-mark-dot';
+      dot.style.left = m.x + '%';
+      dot.style.top = m.y + '%';
+      dot.style.background = m.color;
+      dot.dataset.idx = idx;
+      dot.title = 'Click to remove';
+      inner.appendChild(dot);
     });
   });
 }
@@ -662,6 +686,8 @@ function fillFormFromAssessment_(a) {
   setVal_('f_clinicalDiagnosis', a.clinicalDiagnosis);
   state.form.treatmentGoals = safeParse_(a.treatmentGoalsJson, []); state.form.treatmentPlan = safeParse_(a.treatmentPlanJson, []); renderGoalsPlan_();
   setVal_('f_followUpNotes', a.followUpNotes); setVal_('f_nextReviewDate', a.nextReviewDate);
+  if (state.session.role !== 'physio' && a.physioId) setVal_('f_physioId', a.physioId); // default the dropdown to whoever it's currently assigned to - admin can still change it
+  updateFormSignaturePreview_();
 }
 function truthyStr_(v) { return v === true || String(v).toUpperCase() === 'TRUE'; }
 function safeParse_(str, fallback) { try { return JSON.parse(str || JSON.stringify(fallback)); } catch (e) { return fallback; } }
@@ -678,8 +704,7 @@ function resetAssessmentForm_() {
   state.editingVisitId = null;
   el_('assessmentHeading').textContent = 'New Assessment';
   el_('resetFormBtn').style.display = 'none';
-  el_('assessmentFormWrap').classList.remove('hidden');
-  el_('recordPreviewWrap').classList.add('hidden');
+  updateFormSignaturePreview_();
 }
 el_('resetFormBtn').addEventListener('click', resetAssessmentForm_);
 
@@ -734,7 +759,7 @@ async function saveAssessment_() {
     const full = await apiGet('getAssessment', { visitId });
     if (full.ok) {
       state.lastSavedAssessment = full.assessment;
-      showRecordPreview_(full.assessment);
+      showRecordPreview_(full.assessment, 'assessment');
     }
   } catch (err) {
     statusEl.textContent = 'Network error while saving.'; statusEl.className = 'biller-status err';
@@ -750,10 +775,18 @@ function clearFieldErrors_() { document.querySelectorAll('.field.has-error').for
 //     in Code.gs - same structure/classes, so on-screen preview, Print and
 //     Save-as-PDF all look identical to the emailed PDF).
 // -------------------------------------------------------------------------
+// Point 7/8: field NAME color #2778b7, value plain black - falls back to
+// those exact spec colors if Settings hasn't been resaved with the new keys.
 function fld(label, value) {
-  const labelHtml = label ? `<span class="fl-label" style="color:${state.settings.ThemeFieldLabelColor || '#0f6e5c'}">${escapeHtml(label)}: </span>` : '';
-  return `<div class="doc-field">${labelHtml}<span class="fl-value" style="color:${state.settings.ThemeFieldValueColor || '#182322'}">${escapeHtml(value || '-')}</span></div>`;
+  const labelHtml = label ? `<span class="fl-label" style="color:${state.settings.ThemeFieldLabelColor || '#2778b7'}">${escapeHtml(label)}: </span>` : '';
+  return `<div class="doc-field">${labelHtml}<span class="fl-value" style="color:${state.settings.ThemeFieldValueColor || '#000000'}">${escapeHtml(value || '-')}</span></div>`;
 }
+// Class names below (rom-table/special-tests-table/doc-list/etc.) are kept
+// IDENTICAL to their Code.gs counterparts (romTableHtml_/specialTestsTableHtml_/
+// listHtml_) - point 8's "print/PDF/email must be ditto" requirement, so the
+// on-screen preview and the browser Print/Save-as-PDF output (both built from
+// this client-side HTML) are structurally the same document as the server PDF
+// used for email.
 function romTableHtmlClient_(jsonStr) {
   const dataObj = safeParse_(jsonStr, {});
   let rows = '';
@@ -761,125 +794,184 @@ function romTableHtmlClient_(jsonStr) {
     const movements = ROM_STRUCTURE[joint];
     movements.forEach((m, idx) => {
       const cell = (dataObj[joint] && dataObj[joint][m]) || { R: '', L: '' };
-      rows += `<tr>${idx === 0 ? `<td class="doc-rom-joint" rowspan="${movements.length}">${escapeHtml(joint)}</td>` : ''}` +
+      rows += `<tr>${idx === 0 ? `<td class="rom-joint" rowspan="${movements.length}">${escapeHtml(joint)}</td>` : ''}` +
         `<td>${escapeHtml(m)}</td><td class="num">${escapeHtml(cell.R)}</td><td class="num">${escapeHtml(cell.L)}</td></tr>`;
     });
   });
-  return `<table class="doc-rom-table"><thead><tr><th colspan="2">Movement</th><th>Right</th><th>Left</th></tr></thead><tbody>${rows}</tbody></table>`;
+  return `<table class="rom-table"><thead><tr><th colspan="2">Movement</th><th>Right</th><th>Left</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 function specialTestsHtmlClient_(jsonStr) {
   const rows = safeParse_(jsonStr, []);
-  if (!rows.length) return '<table class="doc-special-table"><thead><tr><th>Test</th><th>Result</th></tr></thead><tbody><tr><td colspan="2" class="muted">No special tests recorded</td></tr></tbody></table>';
-  return '<table class="doc-special-table"><thead><tr><th>Test</th><th>Result</th></tr></thead><tbody>' +
+  if (!rows.length) return '<table class="special-tests-table"><thead><tr><th>Test</th><th>Result</th></tr></thead><tbody><tr><td colspan="2" class="muted">No special tests recorded</td></tr></tbody></table>';
+  return '<table class="special-tests-table"><thead><tr><th>Test</th><th>Result</th></tr></thead><tbody>' +
     rows.map(r => `<tr><td>${escapeHtml(r.test)}</td><td>${escapeHtml(r.result)}</td></tr>`).join('') + '</tbody></table>';
 }
 function listHtmlClient_(jsonStr) {
   const items = safeParse_(jsonStr, []);
-  if (!items.length) return '<div class="muted" style="color:var(--muted);font-style:italic;">None recorded</div>';
+  if (!items.length) return '<div class="muted">None recorded</div>';
   return '<ol class="doc-list">' + items.map(i => `<li>${escapeHtml(i)}</li>`).join('') + '</ol>';
 }
 function checkboxHtmlClient_(label, checked) {
-  return `<span style="margin-right:14px;"><span style="font-size:14px;">${checked ? '&#9745;' : '&#9744;'}</span> ` +
-    `<span style="color:${state.settings.ThemeFieldLabelColor || '#0f6e5c'};font-weight:700;">${escapeHtml(label)}</span></span>`;
+  return `<span class="pmh-item"><span class="chk">${checked ? '&#9745;' : '&#9744;'}</span> ` +
+    `<span style="color:${state.settings.ThemeFieldLabelColor || '#2778b7'}">${escapeHtml(label)}</span></span>`;
 }
+// Point 4/7: background-color (not the background shorthand) so a custom
+// mark color survives print-color-adjust and prints exactly as saved.
 function bodyDiagramsHtmlClient_(painMarksJson) {
   const marks = safeParse_(painMarksJson, []);
   const cells = BODY_VIEWS.map(v => {
-    const dots = marks.filter(m => m.view === v.key).map(m => `<circle cx="${m.x * 2}" cy="${m.y * 4.8}" r="4.2" fill="${m.color}" stroke="#fff" stroke-width="1"/>`).join('');
-    return `<div class="doc-body-view"><svg viewBox="0 0 200 480" style="${v.mirror ? 'transform:scaleX(-1)' : ''}">${v.svg}${dots}</svg>` +
+    const dots = marks.filter(m => m.view === v.key).map(m =>
+      `<span class="doc-mark-dot" style="left:${m.x}%;top:${m.y}%;background-color:${m.color}"></span>`).join('');
+    return `<div class="doc-body-view"><span class="doc-body-img-wrap"><img src="${v.url}">${dots}</span>` +
       `<div class="doc-body-view-label">${v.label.toUpperCase()}</div></div>`;
   }).join('');
   return `<div class="doc-body-diagrams">${cells}</div>` +
-    `<div class="body-legend"><span><i style="background:#d1352f"></i>Pain Point</span><span><i style="background:#2778b7"></i>Radiating Point</span></div>`;
+    `<div class="body-legend"><span><i style="background-color:#d1352f"></i>Pain Point</span><span><i style="background-color:#2778b7"></i>Radiating Point</span></div>`;
 }
+// Point 7: diagonal gradient header band (ThemeDocHeaderColor -> ...ColorTo),
+// clinic-info text hardcoded white, logo unchanged - mirrors docHeaderHtml_
+// in Code.gs exactly.
 function docHeaderHtmlClient_() {
   const s = state.settings;
   const logo = s.PrintLogoURL || s.LogoURL;
+  const headerFrom = s.ThemeDocHeaderColor || '#2778b7';
+  const headerTo = s.ThemeDocHeaderColorTo || '#a8d339';
   const nameStyle = `font-weight:${truthyStr_(s.ThemeDocCompanyNameBold) ? 'bold' : 'normal'};font-style:${truthyStr_(s.ThemeDocCompanyNameItalic) ? 'italic' : 'normal'};text-decoration:${truthyStr_(s.ThemeDocCompanyNameUnderline) ? 'underline' : 'none'}`;
   const infoStyle = `font-weight:${truthyStr_(s.ThemeDocCompanyInfoBold) ? 'bold' : 'normal'};font-style:${truthyStr_(s.ThemeDocCompanyInfoItalic) ? 'italic' : 'normal'};text-decoration:${truthyStr_(s.ThemeDocCompanyInfoUnderline) ? 'underline' : 'none'}`;
-  return `<div class="doc-header">${logo ? `<img class="doc-logo" src="${escapeHtml(logo)}">` : ''}<div>` +
-    `<div class="doc-company-name" style="${nameStyle}">${escapeHtml(s.ClinicName)}</div>` +
-    `<div class="doc-company-info" style="${infoStyle}">${escapeHtml(s.Address)}</div>` +
-    `<div class="doc-company-info" style="${infoStyle}">${escapeHtml(s.Phone)}${truthyStr_(s.ShowClinicEmail) && s.ClinicEmail ? ' &nbsp;|&nbsp; ' + escapeHtml(s.ClinicEmail) : ''}${s.Website ? ' &nbsp;|&nbsp; ' + escapeHtml(s.Website) : ''}</div>` +
+  return `<div class="doc-header-band" style="background-image:linear-gradient(135deg,${headerFrom} 0%,${headerTo} 100%)">${logo ? `<img class="doc-logo" src="${escapeHtml(logo)}">` : ''}<div class="doc-header-text">` +
+    `<div class="doc-company-name" style="color:#FFFFFF;${nameStyle}">${escapeHtml(s.ClinicName)}</div>` +
+    `<div class="doc-company-info" style="color:#FFFFFF;${infoStyle}">${escapeHtml(s.Address)}</div>` +
+    `<div class="doc-company-info" style="color:#FFFFFF;${infoStyle}">${escapeHtml(s.Phone)}${truthyStr_(s.ShowClinicEmail) && s.ClinicEmail ? ' &nbsp;|&nbsp; ' + escapeHtml(s.ClinicEmail) : ''}${s.Website ? ' &nbsp;|&nbsp; ' + escapeHtml(s.Website) : ''}</div>` +
     `</div></div>`;
 }
 
+// Point 5/6/8: single continuous document, ONE header at the top (no
+// repeat), fields grouped into same-line rows via .doc-row.cols-N. This is
+// the byte-for-byte structural mirror of buildAssessmentHtmlForPdf_ in
+// Code.gs - same class names, same section order - used for the on-screen
+// preview AND (via #printSnapshot) the browser's own Print/Save-as-PDF.
 function buildAssessmentDocHtml_(a) {
   const s = state.settings;
+  const headerFrom = s.ThemeDocHeaderColor || '#2778b7';
   const pmh = [checkboxHtmlClient_('DM', truthyStr_(a.pMH_DM)), checkboxHtmlClient_('HTN', truthyStr_(a.pMH_HTN)),
-    checkboxHtmlClient_('Thyroid', truthyStr_(a.pMH_Thyroid)), checkboxHtmlClient_('Cardiac', truthyStr_(a.pMH_Cardiac))].join(' ');
+    checkboxHtmlClient_('Thyroid', truthyStr_(a.pMH_Thyroid)), checkboxHtmlClient_('Cardiac', truthyStr_(a.pMH_Cardiac))].join(' &nbsp; ');
   let vasScale = '';
   for (let n = 0; n <= 10; n++) {
     const active = String(n) === String(a.vAS);
-    vasScale += `<span style="width:22px;height:22px;border-radius:50%;border:1px solid #999;display:inline-flex;align-items:center;justify-content:center;font-size:11px;${active ? 'background:#d1352f;color:#fff;border-color:#d1352f;font-weight:700;' : ''}">${n}</span>`;
+    vasScale += `<span class="vas-num${active ? ' vas-active' : ''}">${n}</span>`;
   }
-  const signatureImg = a.signatureUrl ? `<img class="doc-sig-img" src="${escapeHtml(a.signatureUrl)}">` : '<div class="doc-sig-line"></div>';
+  const signatureImg = a.signatureUrl ? `<img class="sig-img" src="${escapeHtml(a.signatureUrl)}">` : '<div class="sig-line"></div>';
 
   return `${docHeaderHtmlClient_()}
-    <div class="doc-title-bar">PHYSIOTHERAPY ASSESSMENT SHEET</div>
+    <div class="doc-title-bar" style="background-image:linear-gradient(135deg,${headerFrom} 0%,${s.ThemeDocHeaderColorTo || '#a8d339'} 100%)">PHYSIOTHERAPY ASSESSMENT SHEET</div>
+
+    <div class="doc-page">
+
+    <div class="doc-section">
     <div class="section-band">Patient Details</div>
-    <div class="doc-grid-4">
-      ${fld('Patient Name', a.patientName)}${fld('Date', a.date)}${fld('Referred By', a.referredBy)}${fld('Age / Sex', (a.age || '-') + ' / ' + (a.sex || '-'))}
-      ${fld('UHID / File No.', a.uHID)}${fld('Contact No.', a.phone)}${fld('Occupation', a.occupation)}${fld('Email ID', a.email)}
-      ${fld('Address', a.address)}${fld('How They Knew Us', a.howKnow)}${fld('Invoice No.', a.invoiceNumber)}${fld('Issue Type', a.issueType)}
+    <div class="doc-row cols-4">${fld('Patient Name', a.patientName)}${fld('Date', a.date)}${fld('Referred By', a.referredBy)}${fld('Age / Sex', (a.age || '-') + ' / ' + (a.sex || '-'))}</div>
+    <div class="doc-row cols-4">${fld('UHID / File No.', a.uHID)}${fld('Contact No.', a.phone)}${fld('Occupation', a.occupation)}${fld('Email ID', a.email)}</div>
+    <div class="doc-row cols-3">${fld('Address', a.address)}${fld('How They Knew Us', a.howKnow)}${fld('Invoice No.', a.invoiceNumber)}</div>
+    <div class="doc-row cols-1">${fld('Issue Type', a.issueType)}</div>
+    <div class="doc-row cols-2">${fld('Chief Complaint', a.chiefComplaint)}${fld('History of Present Illness', a.historyOfPresentIllness)}</div>
     </div>
-    <div class="doc-grid-2">${fld('Chief Complaint', a.chiefComplaint)}${fld('History of Present Illness', a.historyOfPresentIllness)}</div>
 
+    <div class="doc-section">
     <div class="section-band">Observation &amp; Pain Assessment</div>
-    <div class="doc-grid-3">${fld('Posture', a.posture)}${fld('Gait', a.obsGait)}${fld('Deformity / Swelling', a.deformitySwelling)}</div>
-    <div class="doc-field"><span class="fl-label" style="color:${s.ThemeFieldLabelColor || '#0f6e5c'}">Pain Assessment (VAS):</span></div>
-    <div style="display:flex;justify-content:space-between;max-width:420px;margin:4px 0 10px;">${vasScale}</div>
-    <div class="doc-grid-3">${fld('Nature of Pain', a.natureOfPain)}${fld('Aggravating Factors', a.aggravatingFactors)}${fld('Relieving Factors', a.relievingFactors)}</div>
+    <div class="doc-row cols-3">${fld('Posture', a.posture)}${fld('Gait', a.obsGait)}${fld('Deformity / Swelling', a.deformitySwelling)}</div>
+    <div class="doc-field"><span class="fl-label" style="color:${s.ThemeFieldLabelColor || '#2778b7'}">Pain Assessment (VAS): </span></div>
+    <div class="vas-row">${vasScale}</div>
+    <div class="doc-row cols-3">${fld('Nature of Pain', a.natureOfPain)}${fld('Aggravating Factors', a.aggravatingFactors)}${fld('Relieving Factors', a.relievingFactors)}</div>
+    </div>
 
+    <div class="doc-section">
     <div class="section-band">Past Medical History</div>
-    <div style="font-size:12.5px;margin-bottom:6px;">${pmh}</div>
+    <div class="pmh-row">${pmh}</div>
     ${fld('Surgery / Fracture / Hospitalization', a.surgeryFractureHospitalization)}
+    </div>
 
+    <div class="doc-section flow">
     <div class="section-band">Range of Motion (ROM)</div>${romTableHtmlClient_(a.romJson)}
+    </div>
+    <div class="doc-section flow">
     <div class="section-band">Muscle Strength (MMT)</div>${romTableHtmlClient_(a.mmtJson)}
+    </div>
 
-    <div class="section-band">Mark Pain Point &amp; Radiating Pain</div>${bodyDiagramsHtmlClient_(a.painMarksJson)}
+    <div class="doc-section">
+    <div class="section-band">Mark Pain Point &amp; Radiating Point</div>${bodyDiagramsHtmlClient_(a.painMarksJson)}
+    </div>
 
+    <div class="doc-section">
     <div class="section-band">Special Tests</div>${specialTestsHtmlClient_(a.specialTestsJson)}
+    </div>
 
+    <div class="doc-section">
     <div class="section-band">Functional Assessment</div>
-    <div class="doc-grid-3">${fld('Ambulation', a.ambulation)}${fld('Stair Climbing', a.stairClimbing)}${fld('ADLs', a.aDLs)}</div>
+    <div class="doc-row cols-3">${fld('Ambulation', a.ambulation)}${fld('Stair Climbing', a.stairClimbing)}${fld('ADLs', a.aDLs)}</div>
+    </div>
 
-    <div class="doc-page-break">
-    ${docHeaderHtmlClient_()}
-    <div class="doc-title-bar">PHYSIOTHERAPY ASSESSMENT SHEET (contd.)</div>
-
+    <div class="doc-section">
     <div class="section-band">Balance</div>
-    <div class="doc-grid-2">${fld('Single Leg Stance', a.balanceSingleLegStance)}${fld('Romberg Test', a.balanceRombergTest)}</div>
+    <div class="doc-row cols-2">${fld('Single Leg Stance', a.balanceSingleLegStance)}${fld('Romberg Test', a.balanceRombergTest)}</div>
+    </div>
 
+    <div class="doc-section">
     <div class="section-band">Gait</div>
-    <div class="doc-grid-3">${fld('Pattern', a.gaitPattern)}${fld('Cadence', a.gaitCadence)}${fld('Limping', a.gaitLimping)}</div>
+    <div class="doc-row cols-3">${fld('Pattern', a.gaitPattern)}${fld('Cadence', a.gaitCadence)}${fld('Limping', a.gaitLimping)}</div>
+    </div>
 
+    <div class="doc-section">
     <div class="section-band">Clinical Diagnosis</div>${fld('', a.clinicalDiagnosis)}
-
-    <div class="doc-grid-2">
-      <div><div class="doc-field"><span class="fl-label" style="color:${s.ThemeFieldLabelColor || '#0f6e5c'}">Treatment Goals</span></div>${listHtmlClient_(a.treatmentGoalsJson)}</div>
-      <div><div class="doc-field"><span class="fl-label" style="color:${s.ThemeFieldLabelColor || '#0f6e5c'}">Treatment Plan</span></div>${listHtmlClient_(a.treatmentPlanJson)}</div>
     </div>
 
+    <div class="doc-section">
+    <div class="doc-row cols-2">
+      <div><div class="doc-field"><span class="fl-label" style="color:${s.ThemeFieldLabelColor || '#2778b7'}">Treatment Goals</span></div>${listHtmlClient_(a.treatmentGoalsJson)}</div>
+      <div><div class="doc-field"><span class="fl-label" style="color:${s.ThemeFieldLabelColor || '#2778b7'}">Treatment Plan</span></div>${listHtmlClient_(a.treatmentPlanJson)}</div>
+    </div>
+    </div>
+
+    <div class="doc-section">
     <div class="section-band">Follow Up / Notes</div>
-    <div class="doc-notes-box">${escapeHtml(a.followUpNotes || '')}</div>
-
-    <div class="doc-footer-row">
-      <div>${fld('Next Review Date', a.nextReviewDate)}</div>
-      <div class="doc-sig-block">${signatureImg}<div class="doc-sig-caption">${escapeHtml(a.physioName || 'Physiotherapist')}<br><span style="color:var(--muted);">Physiotherapist Signature</span></div></div>
+    <div class="notes-box">${escapeHtml(a.followUpNotes || '')}</div>
     </div>
-    <div class="doc-record-ids">Visit ID: ${escapeHtml(a.visitId)} &nbsp;|&nbsp; Patient Visit ID: ${escapeHtml(a.patientVisitId)}</div>
-    <div class="doc-tagline">Move Better. Live Better.</div>
+
+    <div class="doc-footer-section footer-row">
+      <div>${fld('Next Review Date', a.nextReviewDate)}</div>
+      <div class="sig-block">${signatureImg}<div class="sig-caption">${escapeHtml(a.physioName || 'Physiotherapist')}<br><span class="muted">Physiotherapist Signature</span></div></div>
+    </div>
+    <div class="doc-footer-section record-ids">Visit ID: ${escapeHtml(a.visitId)} &nbsp;|&nbsp; Patient Visit ID: ${escapeHtml(a.patientVisitId)}</div>
+    <div class="doc-footer-section tagline" style="color:${headerFrom}">Move Better. Live Better.</div>
     </div>`;
 }
 
-function showRecordPreview_(a) {
+// Point 2 fix: activates the record-preview view (its own independent
+// top-level .view section now, see index.html) directly - it no longer
+// needs to route through the New Assessment nav-item/view to be shown, so
+// opening a record from Find/Edit no longer jumps the user to New
+// Assessment. `returnTo` remembers which view Close should go back to.
+function showRecordPreview_(a, returnTo) {
+  state.previewReturnView = returnTo || 'assessment';
   const html = buildAssessmentDocHtml_(a);
   el_('docPaper').innerHTML = html;
   el_('printSnapshot').innerHTML = html;
-  el_('assessmentFormWrap').classList.add('hidden');
-  el_('recordPreviewWrap').classList.remove('hidden');
+
+  el_('recordPreviewHeading').textContent = a.patientName ? ('Record - ' + a.patientName) : 'Record';
+  el_('recordPreviewSub').textContent = 'Visit ' + (a.visitId || '') + (a.date ? ' \u00B7 ' + a.date : '');
+
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  switchToView_('view-record-preview');
+
+  const badge = el_('previewSavedBadge');
+  if (a.archived) {
+    badge.textContent = '\u{1F5C4}\uFE0F Archived - Read Only' + (a.dbLabel ? ' (' + a.dbLabel + ')' : '');
+    badge.className = 'badge badge-archived';
+    el_('editRecordBtn').style.display = 'none';
+  } else {
+    badge.textContent = '\u2713 Saved';
+    badge.className = 'badge badge-ok';
+    el_('editRecordBtn').style.display = '';
+  }
   fitDocScale_();
 }
 function fitDocScale_() {
@@ -892,15 +984,25 @@ function fitDocScale_() {
 }
 window.addEventListener('resize', fitDocScale_);
 
+// Point 2: "Close" returns to wherever the record was opened from - Find/
+// Edit if that's how it was opened, or New Assessment after a fresh save.
+el_('closePreviewBtn').addEventListener('click', () => {
+  const target = state.previewReturnView || 'assessment';
+  const navBtn = document.querySelector('.nav-item[data-view="' + target + '"]');
+  if (navBtn) { navBtn.click(); return; }
+  switchToView_('view-assessment');
+});
+
 el_('editRecordBtn').addEventListener('click', () => {
-  if (!state.lastSavedAssessment) return;
+  if (!state.lastSavedAssessment || state.lastSavedAssessment.archived) return;
   const a = state.lastSavedAssessment;
   state.editingVisitId = a.visitId;
   el_('assessmentHeading').textContent = 'Edit Record - ' + a.visitId;
   el_('resetFormBtn').style.display = '';
   fillFormFromAssessment_(a);
-  el_('assessmentFormWrap').classList.remove('hidden');
-  el_('recordPreviewWrap').classList.add('hidden');
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.querySelector('.nav-item[data-view="assessment"]').classList.add('active');
+  switchToView_('view-assessment');
 });
 
 // -------------------------------------------------------------------------
@@ -989,6 +1091,7 @@ async function doLookupSearch_() {
         <b>${escapeHtml(row.patientName)}</b> &nbsp;|&nbsp; ${escapeHtml(row.visitId)} &nbsp;|&nbsp; ${escapeHtml(row.date)} &nbsp;|&nbsp;
         ${escapeHtml(row.issueType || '-')} &nbsp;|&nbsp; Phone: ${escapeHtml(row.phone)} &nbsp;|&nbsp; Physio: ${escapeHtml(row.physioName)}
         ${row.invoiceNumber ? ' &nbsp;|&nbsp; Invoice: ' + escapeHtml(row.invoiceNumber) : ' &nbsp;|&nbsp; <i>Invoice not yet filled</i>'}
+        ${row.archived ? ' &nbsp;<span class="badge badge-archived" style="font-size:10.5px;">Archived</span>' : ''}
       </div>
       <button class="btn btn-outline btn-sm lookup-open-btn" data-visit="${escapeHtml(row.visitId)}">Open</button>
     </div>`).join('');
@@ -998,8 +1101,11 @@ async function openLookupRecord_(visitId) {
   const r = await apiGet('getAssessment', { visitId });
   if (!r.ok) { toast(r.error || 'Could not load record', 'error'); return; }
   state.lastSavedAssessment = r.assessment;
-  document.querySelector('[data-view="assessment"]').click();
-  showRecordPreview_(r.assessment);
+  // Point 2 fix: no longer clicks the "New Assessment" nav button first -
+  // showRecordPreview_ now activates its own independent view directly, so
+  // "Open" stays in place and shows the record, with a Close button to
+  // return to Find/Edit.
+  showRecordPreview_(r.assessment, 'lookup');
 }
 
 // -------------------------------------------------------------------------
@@ -1019,7 +1125,7 @@ const REPORT_CONFIGS = {
       { key: 'chiefComplaint', label: 'Chief Complaint' }, { key: 'clinicalDiagnosis', label: 'Clinical Diagnosis' },
       { key: 'vas', label: 'VAS', type: 'number' }, { key: 'ambulation', label: 'Ambulation' },
       { key: 'nextReviewDate', label: 'Next Review Date' }, { key: 'physioName', label: 'Physiotherapist' },
-      { key: 'createdAt', label: 'Created At' }
+      { key: 'createdAt', label: 'Created At' }, { key: 'dbLabel', label: 'Database' }
     ],
     defaultCols: ['visitId', 'patientName', 'phone', 'date', 'issueType', 'vas', 'nextReviewDate', 'physioName']
   },
@@ -1149,23 +1255,128 @@ function downloadFileFromString_(filename, content, mimeType) {
 }
 
 // -------------------------------------------------------------------------
-// 21. DASHBOARD
+// 21. DASHBOARD - every KPI card and chart carries its OWN independent
+//     Filter By / Filter Value / Date Range (never one global filter for
+//     the whole page). The server hands over one flattened per-visit
+//     dataset once per "Refresh All"; each widget filters + aggregates its
+//     own slice of that same array, instantly and without another
+//     round-trip, exactly like the billing app's dashboard cards.
 // -------------------------------------------------------------------------
-el_('dashApplyFilterBtn').addEventListener('click', loadDashboard);
-el_('dashClearFilterBtn').addEventListener('click', () => { setVal_('dash_dateFrom', ''); setVal_('dash_dateTo', ''); loadDashboard(); });
+const DASH_FILTER_DIMENSIONS = [
+  ['issueType', 'Issue Type'], ['howKnow', 'How Known'], ['physioName', 'Physiotherapist'], ['sex', 'Sex'],
+  ['ambulation', 'Ambulation'], ['stairClimbing', 'Stair Climbing'], ['adls', 'ADLs'], ['referredBy', 'Referred By']
+];
+const DASH_WIDGETS = {
+  totalVisits: { kind: 'kpi', elId: 'kpiTotalVisits' },
+  totalPatients: { kind: 'kpi-unique', elId: 'kpiTotalPatients' },
+  issueBar: { kind: 'bar', dimension: 'issueType', containerId: 'issueBarChart' },
+  howKnowDonut: { kind: 'donut', dimension: 'howKnow', containerId: 'howKnowDonutChart' },
+  physioDonut: { kind: 'donut', dimension: 'physioName', containerId: 'physioDonutChart' }
+};
+Object.keys(DASH_WIDGETS).forEach(k => { state.dashFilters = state.dashFilters || {}; state.dashFilters[k] = { filterBy: '', filterValue: '', dateFrom: '', dateTo: '' }; });
+state.dashRaw = state.dashRaw || [];
+
 el_('refreshDashboardBtn').addEventListener('click', loadDashboard);
 
 async function loadDashboard() {
-  const params = { dateFrom: val_('dash_dateFrom'), dateTo: val_('dash_dateTo') };
-  const r = await apiGet('getDashboardData', params);
+  const r = await apiGet('getDashboardRaw', {});
   if (!r.ok) { toast(r.error || 'Could not load dashboard', 'error'); return; }
-  el_('kpiTotalVisits').textContent = r.totalVisits.toLocaleString();
-  el_('kpiTotalPatients').textContent = r.totalPatients.toLocaleString();
-  drawGenericBarChart_(el_('issueBarChart'), r.issueTotals.map(i => i.name), r.issueTotals.map(i => i.count));
-  drawGenericDonutChart_(el_('howKnowDonutChart'), r.howKnowTotals);
-  drawGenericDonutChart_(el_('physioDonutChart'), r.physioTotals);
+  state.dashRaw = r.rows || [];
+  renderDashCardFilters_();
+  renderAllDashWidgets_();
   el_('addCustomChartBtn').style.display = state.session.role !== 'physio' ? '' : 'none';
   loadCustomCharts_();
+}
+
+function dashFilterToolbarHtml_(widgetKey, f, idPrefix) {
+  return `
+    <div class="dcf-row"><span class="dcf-pill">Filter By</span>
+      <select class="dcf-filterby" data-widget="${widgetKey}">
+        <option value="">None</option>
+        ${DASH_FILTER_DIMENSIONS.map(([k, l]) => `<option value="${k}" ${f.filterBy === k ? 'selected' : ''}>${l}</option>`).join('')}
+      </select>
+    </div>
+    <div class="dcf-row"><span class="dcf-pill">Filter Value</span>
+      <select class="dcf-filterval" data-widget="${widgetKey}" ${!f.filterBy ? 'disabled' : ''}>
+        <option value="">${f.filterBy ? 'All' : 'Select Filter By first'}</option>
+      </select>
+    </div>
+    <div class="dcf-row"><span class="dcf-pill">Date Range</span>
+      <div class="dcf-daterange">
+        <input type="date" class="dcf-datefrom" data-widget="${widgetKey}" value="${f.dateFrom}">
+        <input type="date" class="dcf-dateto" data-widget="${widgetKey}" value="${f.dateTo}">
+      </div>
+    </div>`;
+}
+
+function renderDashCardFilters_() {
+  Object.keys(DASH_WIDGETS).forEach(key => {
+    const container = document.querySelector(`[data-widget-filters="${key}"]`);
+    if (!container) return;
+    container.innerHTML = dashFilterToolbarHtml_(key, state.dashFilters[key]);
+    populateDashFilterValueOptions_(key);
+  });
+  wireDashFilterToolbar_(document.querySelectorAll('.dash-card-filters'), state.dashFilters, key => computeAndRenderWidget_(key));
+}
+
+// Shared wiring for both the 5 default widgets AND any custom "visits"
+// chart's filter toolbar - `filterState` maps widget/chart id -> its own
+// {filterBy, filterValue, dateFrom, dateTo}, `onChange(id)` recomputes.
+function wireDashFilterToolbar_(scopeNodeList, filterState, onChange) {
+  scopeNodeList.forEach(scope => {
+    scope.querySelectorAll('.dcf-filterby').forEach(sel => sel.onchange = () => {
+      const id = sel.dataset.widget;
+      filterState[id].filterBy = sel.value; filterState[id].filterValue = '';
+      populateDashFilterValueOptionsIn_(scope, id, filterState[id]);
+      onChange(id);
+    });
+    scope.querySelectorAll('.dcf-filterval').forEach(sel => sel.onchange = () => {
+      const id = sel.dataset.widget; filterState[id].filterValue = sel.value; onChange(id);
+    });
+    scope.querySelectorAll('.dcf-datefrom, .dcf-dateto').forEach(inp => inp.onchange = () => {
+      const id = inp.dataset.widget;
+      filterState[id].dateFrom = scope.querySelector(`.dcf-datefrom[data-widget="${id}"]`).value;
+      filterState[id].dateTo = scope.querySelector(`.dcf-dateto[data-widget="${id}"]`).value;
+      onChange(id);
+    });
+  });
+}
+function populateDashFilterValueOptions_(key) { populateDashFilterValueOptionsIn_(document, key, state.dashFilters[key]); }
+function populateDashFilterValueOptionsIn_(scope, key, f) {
+  const sel = scope.querySelector(`.dcf-filterval[data-widget="${key}"]`);
+  if (!sel) return;
+  if (!f.filterBy) { sel.innerHTML = '<option value="">Select Filter By first</option>'; sel.disabled = true; return; }
+  sel.disabled = false;
+  const values = Array.from(new Set(state.dashRaw.map(r => r[f.filterBy]))).filter(Boolean).sort();
+  sel.innerHTML = '<option value="">All</option>' + values.map(v => `<option value="${escapeHtml(v)}" ${f.filterValue === v ? 'selected' : ''}>${escapeHtml(v)}</option>`).join('');
+}
+
+function applyDashFilters_(rows, f) {
+  return rows.filter(r => {
+    if (f.filterBy && f.filterValue && String(r[f.filterBy]) !== f.filterValue) return false;
+    if (f.dateFrom && r.date < f.dateFrom) return false;
+    if (f.dateTo && r.date > f.dateTo) return false;
+    return true;
+  });
+}
+
+function renderAllDashWidgets_() { Object.keys(DASH_WIDGETS).forEach(computeAndRenderWidget_); }
+
+function computeAndRenderWidget_(key) {
+  const cfg = DASH_WIDGETS[key];
+  const filtered = applyDashFilters_(state.dashRaw, state.dashFilters[key]);
+  if (cfg.kind === 'kpi') {
+    el_(cfg.elId).textContent = filtered.length.toLocaleString();
+  } else if (cfg.kind === 'kpi-unique') {
+    el_(cfg.elId).textContent = new Set(filtered.map(r => r.patientKey)).size.toLocaleString();
+  } else {
+    const groups = {};
+    filtered.forEach(r => { const v = r[cfg.dimension] || 'Unspecified'; groups[v] = (groups[v] || 0) + 1; });
+    const items = Object.keys(groups).map(k => ({ name: k, count: groups[k] })).sort((a, b) => b.count - a.count);
+    const container = el_(cfg.containerId);
+    if (cfg.kind === 'bar') drawGenericBarChart_(container, items.map(i => i.name), items.map(i => i.count));
+    else drawGenericDonutChart_(container, items);
+  }
 }
 
 function drawGenericBarChart_(container, labels, values) {
@@ -1194,7 +1405,7 @@ function drawGenericDonutChart_(container, items) {
   const palette = state.themeChartPalette;
   const withColor = items.map((it, idx) => ({ label: it.name, value: it.count, color: palette[idx % palette.length] }));
   const total = withColor.reduce((s, i) => s + i.value, 0);
-  if (!total) { container.innerHTML = '<p style="color:var(--muted);font-size:13px;">No data yet.</p>'; return; }
+  if (!total) { container.innerHTML = '<p style="color:var(--muted);font-size:13px;">No data for this filter.</p>'; return; }
   const r = 70, hole = 40, cx = 90, cy = 90;
   let angleStart = -90, paths = '';
   const nonZero = withColor.filter(i => i.value > 0);
@@ -1224,8 +1435,16 @@ function polarToCartesian_(cx, cy, r, angleDeg) {
 }
 
 // -------------------------------------------------------------------------
-// 22. CUSTOM DASHBOARD CHARTS
+// 22. CUSTOM DASHBOARD CHARTS - built by Super Admin on top of the 5
+//     defaults above. Charts built on "Visits" get the exact same
+//     independent Filter By / Filter Value / Date Range toolbar, computed
+//     from the same client-side dataset; "Patients" / "Issues" charts are
+//     simple running totals with no per-visit date axis to filter by, so
+//     they stay as plain number cards fetched from the server.
 // -------------------------------------------------------------------------
+const CHART_DIM_TO_RAW_KEY = { IssueType: 'issueType', HowKnow: 'howKnow', PhysioName: 'physioName', Sex: 'sex',
+  Ambulation: 'ambulation', StairClimbing: 'stairClimbing', ADLs: 'adls', ReferredBy: 'referredBy', Date: 'date' };
+const CHART_METRIC_TO_RAW_KEY = { VAS: 'vas', Age: 'age' };
 const VISIT_CHART_DIMENSIONS = [
   ['IssueType', 'Issue Type'], ['HowKnow', 'How Known'], ['PhysioName', 'Physiotherapist'], ['Sex', 'Sex'],
   ['Ambulation', 'Ambulation'], ['StairClimbing', 'Stair Climbing'], ['ADLs', 'ADLs'], ['ReferredBy', 'Referred By'], ['Date', 'Date']
@@ -1234,14 +1453,22 @@ async function loadCustomCharts_() {
   const r = await apiGet('getCustomCharts', {});
   if (!r.ok) return;
   state.customCharts = r.charts || [];
+  state.customChartFilters = state.customChartFilters || {};
+  state.customCharts.forEach(c => {
+    const id = 'cc_' + c.chartId;
+    if (!state.customChartFilters[id]) state.customChartFilters[id] = { filterBy: '', filterValue: '', dateFrom: '', dateTo: '' };
+  });
   renderCustomChartsGrid_();
 }
 function renderCustomChartsGrid_() {
   const grid = el_('customChartsGrid');
   el_('customChartsEmptyHint').style.display = state.customCharts.length ? 'none' : '';
   const isAdmin = state.session.role !== 'physio';
-  grid.innerHTML = state.customCharts.map(c => `
-    <div class="dash-card chart-card wide">
+  grid.innerHTML = state.customCharts.map(c => {
+    const id = 'cc_' + c.chartId;
+    const filterable = c.dataSource === 'visits';
+    return `
+    <div class="dash-card chart-card wide dash-card-filterable">
       <div class="dash-card-main">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <h4>${escapeHtml(c.name)}</h4>
@@ -1249,16 +1476,67 @@ function renderCustomChartsGrid_() {
             <button class="btn btn-outline btn-sm cc-edit" data-id="${c.chartId}">Edit</button>
             <button class="btn btn-danger btn-sm cc-del" data-id="${c.chartId}">Delete</button></div>` : ''}
         </div>
-        <div id="cc_${c.chartId}"></div>
+        <div id="${id}"></div>
       </div>
-    </div>`).join('');
-  state.customCharts.forEach(c => loadOneCustomChartData_(c));
+      ${filterable ? `<div class="dash-card-filters cc-filters" data-cc-filters="${id}"></div>` : ''}
+    </div>`;
+  }).join('');
+
+  state.customCharts.filter(c => c.dataSource === 'visits').forEach(c => {
+    const id = 'cc_' + c.chartId;
+    const container = document.querySelector(`[data-cc-filters="${id}"]`);
+    if (container) { container.innerHTML = dashFilterToolbarHtml_(id, state.customChartFilters[id]); populateDashFilterValueOptionsIn_(container, id, state.customChartFilters[id]); }
+  });
+  wireDashFilterToolbar_(document.querySelectorAll('.cc-filters'), state.customChartFilters, id => renderOneCustomChart_(state.customCharts.find(c => 'cc_' + c.chartId === id)));
+
+  state.customCharts.forEach(c => renderOneCustomChart_(c));
   document.querySelectorAll('.cc-edit').forEach(btn => btn.addEventListener('click', () => openChartBuilder_(state.customCharts.find(c => String(c.chartId) === btn.dataset.id))));
   document.querySelectorAll('.cc-del').forEach(btn => btn.addEventListener('click', () => deleteCustomChart_(btn.dataset.id)));
 }
-async function loadOneCustomChartData_(def) {
+
+function renderOneCustomChart_(def) {
+  if (!def) return;
   const container = el_('cc_' + def.chartId);
   if (!container) return;
+
+  if (def.dataSource !== 'visits') { loadOneCustomChartDataFromServer_(def, container); return; }
+
+  const id = 'cc_' + def.chartId;
+  const filtered = applyDashFilters_(state.dashRaw, state.customChartFilters[id]);
+  const dimKey = CHART_DIM_TO_RAW_KEY[def.dimension];
+  const metricKey = CHART_METRIC_TO_RAW_KEY[def.metricField];
+
+  if (def.type === 'number') {
+    let value;
+    if (def.metric === 'count') value = filtered.length;
+    else {
+      const nums = filtered.map(r => Number(r[metricKey]) || 0);
+      const sum = nums.reduce((a, b) => a + b, 0);
+      value = def.metric === 'average' ? (nums.length ? sum / nums.length : 0) : sum;
+    }
+    container.innerHTML = `<div style="font-size:34px;font-weight:800;color:var(--theme-heading);margin-top:6px;">${formatChartNumber_(value)}</div>`;
+    return;
+  }
+
+  const groups = {};
+  filtered.forEach(r => {
+    const key = String(r[dimKey] || 'Unspecified');
+    if (!groups[key]) groups[key] = { sum: 0, count: 0 };
+    groups[key].count++;
+    if (metricKey) groups[key].sum += Number(r[metricKey]) || 0;
+  });
+  let rows = Object.keys(groups).map(k => ({
+    label: k, value: def.metric === 'count' ? groups[k].count : (def.metric === 'average' ? (groups[k].sum / groups[k].count) : groups[k].sum)
+  }));
+  rows.sort((a, b) => def.sortDir === 'asc' ? a.value - b.value : b.value - a.value);
+  const topN = Number(def.topN) || 0;
+  if (topN > 0) rows = rows.slice(0, topN);
+
+  if (def.type === 'bar') drawGenericBarChart_(container, rows.map(r => r.label), rows.map(r => r.value));
+  else drawGenericDonutChart_(container, rows.map(r => ({ name: r.label, count: r.value })));
+}
+
+async function loadOneCustomChartDataFromServer_(def, container) {
   const r = await apiGet('getCustomChartData', { chartId: def.chartId });
   if (!r.ok) { container.innerHTML = '<p style="color:var(--muted);font-size:13px;">' + escapeHtml(r.error || 'Could not load') + '</p>'; return; }
   if (r.type === 'number') {
@@ -1410,14 +1688,26 @@ function openPhysioModal_(existing) {
   setVal_('pm_editId', existing ? existing.physioId : '');
   setVal_('pm_name', existing ? existing.name : '');
   setVal_('pm_password', '');
+  setVal_('pm_signatureUrl', existing ? (existing.signatureUrl || '') : '');
+  updatePmSignaturePreview_();
   el_('physioModalStatus').textContent = ''; el_('physioModalStatus').className = 'biller-status';
   el_('physioModal').classList.add('show');
 }
+function updatePmSignaturePreview_() {
+  const url = val_('pm_signatureUrl').trim();
+  const img = el_('pm_signaturePreview'), empty = el_('pm_signatureEmpty');
+  if (url) { img.src = url; img.style.display = ''; empty.style.display = 'none'; }
+  else { img.style.display = 'none'; empty.style.display = ''; }
+}
+el_('pm_signatureUrl').addEventListener('input', updatePmSignaturePreview_);
 el_('pm_cancel').addEventListener('click', () => el_('physioModal').classList.remove('show'));
 el_('pm_save').addEventListener('click', async () => {
   const auth = superAdminFromFields_();
   const editId = val_('pm_editId');
-  const payload = { name: val_('pm_name'), password: val_('pm_password'), editPhysioId: editId || undefined, superAdminUser: auth.user, superAdminPass: auth.pass };
+  const payload = {
+    name: val_('pm_name'), password: val_('pm_password'), signatureUrl: val_('pm_signatureUrl').trim(),
+    editPhysioId: editId || undefined, superAdminUser: auth.user, superAdminPass: auth.pass
+  };
   if (!payload.name) { el_('physioModalStatus').textContent = 'Name is required'; el_('physioModalStatus').className = 'biller-status err'; return; }
   if (!editId && !payload.password) { el_('physioModalStatus').textContent = 'Password is required for a new account'; el_('physioModalStatus').className = 'biller-status err'; return; }
   const r = await apiPost('savePhysio', payload);
@@ -1491,33 +1781,150 @@ el_('saveClinicBtn').addEventListener('click', async () => {
 });
 
 // ---- Theme ----
-const THEME_FIELD_DEFS = [
-  ['ThemeButtonFrom', 'color', 'Button - From'], ['ThemeButtonTo', 'color', 'Button - To'], ['ThemeButtonText', 'color', 'Button Text'],
-  ['ThemeButtonHoverFrom', 'color', 'Button Hover - From'], ['ThemeButtonHoverTo', 'color', 'Button Hover - To'],
-  ['ThemeSidebarFrom', 'color', 'Sidebar - From'], ['ThemeSidebarTo', 'color', 'Sidebar - To'], ['ThemeSidebarText', 'color', 'Sidebar Text'],
-  ['ThemeNavActiveBg', 'color', 'Sidebar Active Item Background'], ['ThemeNavActiveText', 'color', 'Sidebar Active Item Text'],
-  ['ThemeHeadingColor', 'color', 'Page Heading Color'], ['ThemeMutedColor', 'color', 'Muted / Secondary Text'],
-  ['ThemeBgColor', 'color', 'App Background'], ['ThemeSurfaceColor', 'color', 'Card / Panel Background'], ['ThemeBorderColor', 'color', 'Border Color'],
-  ['ThemeOutlineText', 'color', 'Outline Button Text'], ['ThemeOutlineBorder', 'color', 'Outline Button Border'],
-  ['ThemeLoginBgFrom', 'color', 'Login Background - From'], ['ThemeLoginBgTo', 'color', 'Login Background - To'],
-  ['ThemeLoginCardBg', 'color', 'Login Card Background'], ['ThemeLoginHeadingColor', 'color', 'Login Heading'], ['ThemeLoginTextColor', 'color', 'Login Text'],
-  ['ThemeDocHeaderColor', 'color', 'Printed Sheet - Header/Brand Color'],
-  ['ThemeFieldLabelColor', 'color', 'Printed Sheet - Field NAME Color'], ['ThemeFieldValueColor', 'color', 'Printed Sheet - Field VALUE Color'],
-  ['ThemeSectionBandColor', 'color', 'Printed Sheet - Section Band Background'],
-  ['ThemeDocLogoWidth', 'text', 'Printed Sheet - Logo Width (px)'], ['ThemeDocLogoHeight', 'text', 'Printed Sheet - Logo Height (px)']
+// Every key here matches a Settings row 1:1 (see THEME_SETTING_DEFAULTS in
+// Code.gs) - this tab is just a friendlier face on those same rows, split
+// into the same sections the billing app uses, each with its own live
+// preview that recomputes on every keystroke/click, entirely client-side.
+const THEME_COLOR_FIELDS = [
+  'ThemeLoginBgFrom', 'ThemeLoginBgTo', 'ThemeLoginCardBg', 'ThemeLoginHeadingColor', 'ThemeLoginTextColor',
+  'ThemeSidebarFrom', 'ThemeSidebarTo', 'ThemeSidebarText', 'ThemeNavActiveBg', 'ThemeNavActiveText',
+  'ThemeButtonFrom', 'ThemeButtonTo', 'ThemeButtonText', 'ThemeButtonHoverFrom', 'ThemeButtonHoverTo',
+  'ThemeOutlineText', 'ThemeOutlineBorder', 'ThemeOutlineHoverBg', 'ThemeOutlineHoverText',
+  'ThemePageHeadingColor', 'ThemePageSubheadingColor', 'ThemeSectionHeadingColor',
+  'ThemeTabActiveTextColor', 'ThemeTabInactiveTextColor', 'ThemeTabIndicatorFrom', 'ThemeTabIndicatorTo',
+  'ThemeGateBgColor', 'ThemeGateBorderColor', 'ThemeGateTitleColor',
+  'ThemeDocHeaderColor', 'ThemeFieldLabelColor', 'ThemeFieldValueColor', 'ThemeSectionBandColor',
+  'ThemeHeadingColor', 'ThemeMutedColor', 'ThemeSurfaceColor', 'ThemeBgColor', 'ThemeBorderColor'
 ];
+const THEME_STYLE_SELECT_FIELDS = ['ThemeLoginBgStyle', 'ThemeSidebarStyle', 'ThemeButtonStyle', 'ThemeTabIndicatorStyle', 'ThemeDocFontFamily', 'ThemeDocHeaderLayout'];
+const THEME_CHECKBOX_FIELDS = ['ThemeDocCompanyNameBold', 'ThemeDocCompanyNameItalic', 'ThemeDocCompanyNameUnderline',
+  'ThemeDocCompanyInfoBold', 'ThemeDocCompanyInfoItalic', 'ThemeDocCompanyInfoUnderline'];
+const THEME_NUMBER_FIELDS = ['ThemeDocLogoWidth', 'ThemeDocLogoHeight'];
+
 function renderThemeGrid_() {
   const s = state.settings;
-  el_('themeGrid').innerHTML = THEME_FIELD_DEFS.map(([key, type, label]) => `
-    <div class="theme-item">
-      <label>${escapeHtml(label)}</label>
-      <input type="${type}" id="th_${key}" value="${escapeHtml(s[key] || '')}">
-    </div>`).join('');
+  THEME_COLOR_FIELDS.forEach(key => { const el = el_('th_' + key); if (el) el.value = s[key] || '#000000'; });
+  THEME_STYLE_SELECT_FIELDS.forEach(key => { const el = el_('th_' + key); if (el) el.value = s[key] || el.options[0].value; });
+  THEME_CHECKBOX_FIELDS.forEach(key => { const el = el_('th_' + key); if (el) el.checked = truthyStr_(s[key]); });
+  THEME_NUMBER_FIELDS.forEach(key => { const el = el_('th_' + key); if (el) el.value = s[key] || ''; });
+
+  const palette = (s.ThemeChartPalette || '').split(',').map(c => c.trim()).filter(Boolean);
+  while (palette.length < 12) palette.push('#888888');
+  el_('themeChartSwatches').innerHTML = palette.slice(0, 12).map((c, i) =>
+    `<input type="color" class="th-chart-swatch" id="th_chart_${i}" value="${c}">`).join('');
+
+  wireThemeLivePreview_();
+  updateAllThemePreviews_();
 }
+
+function wireThemeLivePreview_() {
+  document.querySelectorAll('.th-input, .th-style-select').forEach(el => {
+    el.oninput = () => updateAllThemePreviews_();
+  });
+  document.querySelectorAll('#tab-theme input[type=checkbox]').forEach(el => { el.onchange = () => updateAllThemePreviews_(); });
+  document.querySelectorAll('.th-chart-swatch').forEach(el => { el.oninput = () => updateAllThemePreviews_(); });
+  document.querySelectorAll('.logo-preset-btn').forEach(btn => {
+    btn.onclick = () => { setVal_('th_ThemeDocLogoWidth', btn.dataset.w); setVal_('th_ThemeDocLogoHeight', btn.dataset.h); updateAllThemePreviews_(); };
+  });
+}
+
+// Reads every field on the Theme tab into one plain object - the single
+// source of truth for both "what do the previews show right now" and
+// "what gets sent to the server on Save".
+function readThemeFormValues_() {
+  const v = {};
+  THEME_COLOR_FIELDS.forEach(key => { v[key] = val_('th_' + key); });
+  THEME_STYLE_SELECT_FIELDS.forEach(key => { v[key] = val_('th_' + key); });
+  THEME_CHECKBOX_FIELDS.forEach(key => { v[key] = checked_('th_' + key) ? 'TRUE' : 'FALSE'; });
+  THEME_NUMBER_FIELDS.forEach(key => { v[key] = val_('th_' + key); });
+  v.ThemeChartPalette = Array.from(document.querySelectorAll('.th-chart-swatch')).map(el => el.value).join(',');
+  return v;
+}
+
+function updateAllThemePreviews_() {
+  const v = readThemeFormValues_();
+
+  // Login
+  el_('loginPreview').querySelector('.tp-login-bg').style.background = gradientCss_(v.ThemeLoginBgStyle, v.ThemeLoginBgFrom, v.ThemeLoginBgTo);
+  const loginCard = el_('loginPreview').querySelector('.tp-login-card');
+  loginCard.style.background = v.ThemeLoginCardBg;
+  loginCard.querySelector('.tp-login-name').style.color = v.ThemeLoginHeadingColor;
+  loginCard.querySelector('.tp-login-sub').style.color = v.ThemeLoginTextColor;
+
+  // Sidebar
+  const sb = el_('sidebarPreview').querySelector('.tp-sidebar');
+  sb.style.background = gradientCss_(v.ThemeSidebarStyle, v.ThemeSidebarFrom, v.ThemeSidebarTo);
+  sb.querySelectorAll('.tp-sidebar-item').forEach(item => { item.style.color = v.ThemeSidebarText; });
+  const activeItem = sb.querySelector('.tp-active');
+  activeItem.style.background = v.ThemeNavActiveBg; activeItem.style.color = v.ThemeNavActiveText;
+
+  // Buttons
+  const bp = el_('buttonPreview');
+  const fillNormal = bp.querySelectorAll('.tp-btn-fill')[0], fillHover = bp.querySelectorAll('.tp-btn-fill')[1];
+  fillNormal.style.background = gradientCss_(v.ThemeButtonStyle, v.ThemeButtonFrom, v.ThemeButtonTo); fillNormal.style.color = v.ThemeButtonText;
+  fillHover.style.background = gradientCss_(v.ThemeButtonStyle, v.ThemeButtonHoverFrom, v.ThemeButtonHoverTo); fillHover.style.color = v.ThemeButtonText;
+  const outNormal = bp.querySelectorAll('.tp-btn-outline')[0], outHover = bp.querySelectorAll('.tp-btn-outline')[1];
+  outNormal.style.color = v.ThemeOutlineText; outNormal.style.borderColor = v.ThemeOutlineBorder || v.ThemeOutlineText;
+  outHover.style.background = v.ThemeOutlineHoverBg; outHover.style.color = v.ThemeOutlineHoverText; outHover.style.borderColor = v.ThemeOutlineBorder || v.ThemeOutlineText;
+
+  // Headings
+  const hp = el_('headingPreview');
+  hp.querySelector('.tp-page-heading').style.color = v.ThemePageHeadingColor;
+  hp.querySelector('.tp-page-sub').style.color = v.ThemePageSubheadingColor;
+  hp.querySelector('.tp-section-heading').style.color = v.ThemeSectionHeadingColor;
+
+  // Tabs
+  const tp = el_('tabsPreview');
+  tp.querySelectorAll('.tp-tab').forEach(t => { t.style.color = v.ThemeTabInactiveTextColor; });
+  const activeTab = tp.querySelector('.tp-tab-active');
+  activeTab.style.color = v.ThemeTabActiveTextColor;
+  activeTab.style.borderImage = `${gradientCss_(v.ThemeTabIndicatorStyle, v.ThemeTabIndicatorFrom, v.ThemeTabIndicatorTo)} 1`;
+  activeTab.style.borderBottomColor = v.ThemeTabIndicatorTo;
+
+  // Gate / authorization box
+  const gp = el_('gatePreview').querySelector('.tp-gate');
+  gp.style.background = v.ThemeGateBgColor; gp.style.borderColor = v.ThemeGateBorderColor; gp.style.color = v.ThemeGateTitleColor;
+
+  // Assessment sheet design
+  const dp = el_('docPreview');
+  dp.style.fontFamily = v.ThemeDocFontFamily;
+  dp.querySelector('.tp-doc-header').style.borderBottomColor = v.ThemeDocHeaderColor;
+  dp.querySelector('.tp-doc-name').style.color = v.ThemeDocHeaderColor;
+  dp.querySelector('.tp-doc-id').style.color = v.ThemeDocHeaderColor;
+  dp.querySelector('.tp-doc-name').style.fontWeight = truthyStr_(v.ThemeDocCompanyNameBold) ? '800' : '400';
+  dp.querySelector('.tp-doc-name').style.fontStyle = truthyStr_(v.ThemeDocCompanyNameItalic) ? 'italic' : 'normal';
+  dp.querySelector('.tp-doc-name').style.textDecoration = truthyStr_(v.ThemeDocCompanyNameUnderline) ? 'underline' : 'none';
+  dp.querySelector('.tp-doc-info').style.fontWeight = truthyStr_(v.ThemeDocCompanyInfoBold) ? '700' : '400';
+  dp.querySelector('.tp-doc-info').style.fontStyle = truthyStr_(v.ThemeDocCompanyInfoItalic) ? 'italic' : 'normal';
+  dp.querySelector('.tp-doc-info').style.textDecoration = truthyStr_(v.ThemeDocCompanyInfoUnderline) ? 'underline' : 'none';
+  const docHeaderEl = dp.querySelector('.tp-doc-header');
+  docHeaderEl.style.flexDirection = v.ThemeDocHeaderLayout === 'logo-top' ? 'column' : 'row';
+  docHeaderEl.style.alignItems = v.ThemeDocHeaderLayout === 'logo-top' ? 'flex-start' : 'center';
+  dp.querySelector('.tp-doc-band').style.background = v.ThemeSectionBandColor;
+  dp.querySelector('.tp-doc-fl').style.color = v.ThemeFieldLabelColor;
+  dp.querySelector('.tp-doc-fv').style.color = v.ThemeFieldValueColor;
+  const logoW = Math.max(20, Math.min(70, Number(v.ThemeDocLogoWidth) || 40));
+  const logoH = Math.max(20, Math.min(70, Number(v.ThemeDocLogoHeight) || 40));
+  const docLogo = dp.querySelector('.tp-doc-logo'); docLogo.style.width = logoW + 'px'; docLogo.style.height = logoH + 'px';
+
+  // Text & backgrounds
+  const txp = el_('textPreview');
+  txp.querySelector('.tp-text-outer').style.background = v.ThemeBgColor;
+  const txCard = txp.querySelector('.tp-text-card');
+  txCard.style.background = v.ThemeSurfaceColor; txCard.style.border = '1px solid ' + v.ThemeBorderColor;
+  txCard.querySelector('.tp-text-heading').style.color = v.ThemeHeadingColor;
+  txCard.querySelector('.tp-text-muted').style.color = v.ThemeMutedColor;
+
+  // Chart palette
+  const palette = v.ThemeChartPalette.split(',').map(c => c.trim()).filter(Boolean);
+  const heights = [62, 38, 50, 28, 44, 20, 56, 32, 46, 24, 40, 30];
+  el_('tpChartBars').innerHTML = palette.map((c, i) => `<span style="height:${heights[i % heights.length]}px;background:${c}"></span>`).join('');
+  el_('tpNumberCards').innerHTML = palette.slice(0, 4).map(c => `<span style="background:${c}">128</span>`).join('');
+}
+
 el_('saveThemeBtn').addEventListener('click', async () => {
   const auth = superAdminFromFields_();
-  const payload = { superAdminUser: auth.user, superAdminPass: auth.pass };
-  THEME_FIELD_DEFS.forEach(([key]) => { payload[key] = val_('th_' + key); });
+  const payload = Object.assign({ superAdminUser: auth.user, superAdminPass: auth.pass }, readThemeFormValues_());
   const r = await apiPost('updateTheme', payload);
   const statusEl = el_('themeStatus');
   if (!r.ok) { statusEl.textContent = r.error || 'Could not save'; statusEl.className = 'biller-status err'; return; }
@@ -1534,17 +1941,94 @@ el_('resetThemeBtn').addEventListener('click', async () => {
   toast('Theme reset to default', 'success');
 });
 
-// ---- Database status ----
-async function loadDbStatus_() {
-  const r = await apiGet('getDbStatus', {});
-  if (!r.ok) return;
-  el_('dbStatusGrid').innerHTML = `
-    <div class="dash-card kpi-card c-teal"><div class="dash-card-main"><div class="icon">&#128197;</div><div class="label">Total Visits</div><div class="value">${r.totalVisits.toLocaleString()}</div></div></div>
-    <div class="dash-card kpi-card c-violet"><div class="dash-card-main"><div class="icon">&#128101;</div><div class="label">Total Patients</div><div class="value">${r.totalPatients.toLocaleString()}</div></div></div>
-    <div class="dash-card kpi-card c-teal"><div class="dash-card-main"><div class="icon">&#128218;</div><div class="label">Cell Usage</div><div class="value">${r.percentUsed}%</div></div></div>`;
-  el_('dbStatusTableBody').innerHTML = r.sheets.map(sh => `<tr><td>${escapeHtml(sh.name)}</td><td>${sh.rows.toLocaleString()}</td><td>${sh.cols}</td><td>${sh.cells.toLocaleString()}</td></tr>`).join('');
+// ---- Database(s) Status - "Add New Database", capacity bars, archives ----
+function capacityBarClass_(pct) { return pct >= 90 ? 'crit' : pct >= 75 ? 'warn' : 'ok'; }
+
+function dbCardHtml_(db, isActive) {
+  const reachable = db.reachable !== false;
+  const badge = isActive ? '<span class="ds-db-badge active">Active</span>' : '<span class="ds-db-badge archived">Archived</span>';
+  if (!reachable) {
+    return `<div class="ds-db-card ds-unreachable">
+      <div class="ds-db-top">${badge}<span class="ds-db-label">${escapeHtml(db.label || '')}</span></div>
+      <div class="ds-db-name">${escapeHtml(db.name)}</div>
+    </div>`;
+  }
+  const pct = Math.min(100, db.percentUsed || 0);
+  const barClass = capacityBarClass_(pct);
+  const rows = db.rowCounts || {};
+  return `<div class="ds-db-card">
+    <div class="ds-db-top">
+      ${badge}
+      ${db.label ? `<span class="ds-db-label">${escapeHtml(db.label)}</span>` : ''}
+    </div>
+    <div class="ds-db-name">${db.url ? `<a href="${escapeHtml(db.url)}" target="_blank" rel="noopener">${escapeHtml(db.name)} &#8599;</a>` : escapeHtml(db.name)}</div>
+    <div class="ds-db-progress-track"><div class="ds-db-progress-fill ${barClass}" style="width:${pct}%"></div></div>
+    <div class="ds-db-progress-text"><span>${pct}% of capacity used</span><span>${barClass === 'crit' ? 'Nearly full - add a new database soon' : barClass === 'warn' ? 'Getting full' : 'Plenty of room'}</span></div>
+    <div class="ds-db-rows">
+      <span><b>${(rows.visits || 0).toLocaleString()}</b> visits</span>
+      <span><b>${(rows.patients || 0).toLocaleString()}</b> patients</span>
+      <span><b>${(rows.physios || 0).toLocaleString()}</b> physiotherapists</span>
+    </div>
+    ${isActive && db.nextVisitId ? `<div class="ds-db-next">Next Visit ID here will be <b>${escapeHtml(db.nextVisitId)}</b></div>` : ''}
+  </div>`;
 }
-el_('refreshDbStatusBtn').addEventListener('click', loadDbStatus_);
+
+async function loadDbStatus_() {
+  const auth = superAdminFromFields_();
+  if (!auth.user || !auth.pass) {
+    el_('dataStatusResult').innerHTML = '<div class="ds-loading">Enter your Super Admin credentials above, then click Refresh.</div>';
+    return;
+  }
+  el_('dataStatusResult').innerHTML = '<div class="ds-loading">Loading...</div>';
+  const r = await apiPost('getDataDiagnostics', { superAdminUser: auth.user, superAdminPass: auth.pass });
+  if (!r.ok) {
+    el_('dataStatusResult').innerHTML = `<div class="ds-loading">${escapeHtml(r.error || 'Could not load database status')}</div>`;
+    return;
+  }
+  const cards = [dbCardHtml_(r.active, true)].concat(r.archives.map(a => dbCardHtml_(a, false)));
+  el_('dataStatusResult').innerHTML = `<div class="ds-db-list">${cards.join('')}</div>`;
+}
+el_('checkDataStatusBtn').addEventListener('click', loadDbStatus_);
+
+el_('addNewDatabaseBtn').addEventListener('click', async () => {
+  const auth = superAdminFromFields_();
+  if (!auth.user || !auth.pass) { toast('Enter Super Admin credentials above first', 'error'); return; }
+  if (!confirm('This creates a brand-new spreadsheet, copies your clinic settings, physiotherapist accounts, ' +
+    'issues list and patients into it, and switches every new assessment there from now on. The current database ' +
+    'is kept exactly as-is (nothing is deleted) and stays readable from Find/Edit, Reports and the Dashboard as ' +
+    'archived history. Continue?')) return;
+  const btn = el_('addNewDatabaseBtn');
+  btn.disabled = true; btn.textContent = 'Creating new database...';
+  try {
+    const r = await apiPost('autoExpandDatabase', { superAdminUser: auth.user, superAdminPass: auth.pass });
+    const resultBox = el_('dbExpandResult');
+    if (!r.ok) {
+      resultBox.style.display = ''; resultBox.innerHTML = `<b style="color:var(--danger)">Could not create a new database:</b> ${escapeHtml(r.error || 'Unknown error')}`;
+      toast(r.error || 'Could not create new database', 'error');
+      return;
+    }
+    resultBox.style.display = '';
+    resultBox.innerHTML = `<b>New database created and is now active:</b> ${escapeHtml(r.newSpreadsheetName)}<br>` +
+      `<a href="${escapeHtml(r.newSpreadsheetUrl)}" target="_blank" rel="noopener">Open the new spreadsheet &#8599;</a><br>` +
+      `The previous database is now archived ("${escapeHtml(r.archivedLabel)}") and still fully readable from Find/Edit, Reports and the Dashboard.`;
+    toast('New database created and switched to', 'success');
+    await loadDbStatus_();
+  } finally {
+    btn.disabled = false; btn.textContent = '\u2795 Add New Database Now';
+  }
+});
+
+el_('resetToActiveOnlyBtn').addEventListener('click', async () => {
+  const auth = superAdminFromFields_();
+  if (!auth.user || !auth.pass) { toast('Enter Super Admin credentials above first', 'error'); return; }
+  if (!confirm('This forgets every archived database link (they are NOT deleted - just unlinked from this app) ' +
+    'and re-bases Visit ID / Issue ID numbering on only what is actually in the active spreadsheet right now. ' +
+    'Use this only to fix numbering after manually editing the sheet, or to undo a test "Add New Database". Continue?')) return;
+  const r = await apiPost('resetToActiveOnly', { superAdminUser: auth.user, superAdminPass: auth.pass });
+  if (!r.ok) { toast(r.error || 'Could not reset', 'error'); return; }
+  toast('Numbering reset. Next Visit ID will be ' + r.nextVisitId, 'success');
+  await loadDbStatus_();
+});
 
 // ---- My Login ----
 el_('saveAdminLoginBtn').addEventListener('click', async () => {
@@ -1585,6 +2069,7 @@ el_('uploadSignatureBtn').addEventListener('click', async () => {
     toast('Signature uploaded', 'success');
     const p = state.physios.find(p => p.physioId === state.session.physioId);
     if (p) p.signatureUrl = r.signatureUrl;
+    updateFormSignaturePreview_();
   };
   reader.readAsDataURL(file);
 });
