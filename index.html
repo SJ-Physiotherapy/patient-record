@@ -4,11 +4,33 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#2778b7">
 <title>SJ Physiotherapy - Patient Assessment &amp; Records System</title>
+<!-- Warm up the connections the app needs first (API + images) while the page is still parsing. -->
+<link rel="preconnect" href="https://script.google.com" crossorigin>
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+<link rel="preconnect" href="https://sjphysiotherapy.in">
 <link rel="icon" href="https://sjphysiotherapy.in/LOGO/favicon.png" type="image/png">
-<link rel="stylesheet" href="style.css?v=20260917-01">
+<link rel="stylesheet" href="style.css?v=20261009-02">
 </head>
 <body>
+
+<!-- Shared SVG filter: lifts the near-white grey backdrop of the body-diagram
+     photos to pure white (on screen, in Print and in Save-as-PDF) without
+     touching the figure itself. Kept 0x0 instead of display:none so every
+     browser still resolves the filter reference. -->
+<svg id="svgDefs" class="svg-defs" width="0" height="0" aria-hidden="true" focusable="false">
+  <filter id="bodyWhiten" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%">
+    <!-- 1) white layer whose opacity = the pixel's brightness (luminance) -->
+    <feColorMatrix in="SourceGraphic" type="matrix" result="lum"
+      values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0.2126 0.7152 0.0722 0 0"/>
+    <!-- 2) keep it only where brightness is above ~86-90% (grey/near-white
+         backdrop); darker figure tones get 0 opacity and stay untouched -->
+    <feComponentTransfer in="lum" result="mask"><feFuncA type="linear" slope="25" intercept="-21.5"/></feComponentTransfer>
+    <!-- 3) lay that white over the original picture -->
+    <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="mask"/></feMerge>
+  </filter>
+</svg>
 
 <!-- ===================== LOGIN SCREEN ===================== -->
 <div id="loginScreen" class="login-screen">
@@ -16,10 +38,10 @@
     <img id="loginLogo" class="login-logo" src="https://sjphysiotherapy.in/LOGO/favicon.png" alt="Logo">
     <h1>SJ Physiotherapy</h1>
     <p class="sub">Patient Assessment &amp; Records System</p>
-    <div id="loginError" class="login-error"></div>
+    <div id="loginError" class="login-error" role="alert"></div>
     <div class="field">
       <label for="loginUser">Username / Physiotherapist ID</label>
-      <input id="loginUser" type="text" autocomplete="username" placeholder="Enter username or ID">
+      <input id="loginUser" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="Enter username or ID">
     </div>
     <div class="field">
       <label for="loginPass">Password</label>
@@ -35,7 +57,7 @@
 
   <aside id="sidebar" class="sidebar">
     <div class="sidebar-brand">
-      <img id="sidebarLogo" src="https://via.placeholder.com/160x160.png?text=LOGO" alt="Logo">
+      <img id="sidebarLogo" src="https://sjphysiotherapy.in/LOGO/favicon.png" alt="Logo">
       <div class="brand-text">
         <div class="name" id="sidebarCompanyName">SJ Physiotherapy</div>
         <div class="tag">Patient Assessment &amp; Records</div>
@@ -50,22 +72,23 @@
     </nav>
     <div class="sidebar-footer">
       <div class="who">Signed in as <b id="whoAmI">SJ Physiotherapy Admin</b></div>
-      <button id="logoutBtn" class="btn btn-outline btn-sm btn-block" style="border-color:rgba(255,255,255,.4); color:var(--theme-sidebar-text);">Log Out</button>
+      <button id="logoutBtn" class="btn btn-outline btn-sm btn-block sidebar-logout">Log Out</button>
       <div class="creator-credit">
         <div class="creator-credit-name">SJ Physiotherapy &bull; Internal System</div>
       </div>
     </div>
   </aside>
+  <div id="sidebarScrim" class="sidebar-scrim"></div>
 
   <div class="main-area">
     <div class="topbar">
-      <button class="hamburger" id="hamburgerBtn">&#9776;</button>
-      <div class="brand-mini"><img id="topbarLogo" src="https://via.placeholder.com/160x160.png?text=LOGO">SJ Physiotherapy</div>
+      <button class="hamburger" id="hamburgerBtn" aria-label="Open menu">&#9776;</button>
+      <div class="brand-mini"><img id="topbarLogo" src="https://sjphysiotherapy.in/LOGO/favicon.png" alt="">SJ Physiotherapy</div>
       <div style="width:28px;"></div>
     </div>
 
     <div id="staleBackendBar" class="stale-backend-bar"></div>
-    <div id="toastHost" class="toast-host"></div>
+    <div id="toastHost" class="toast-host" aria-live="polite"></div>
 
     <!-- ===================== NEW ASSESSMENT VIEW ===================== -->
     <section id="view-assessment" class="view active">
@@ -74,69 +97,77 @@
           <h2 id="assessmentHeading">New Assessment</h2>
           <p>Fill in every section below exactly as on the clinic's paper assessment sheet - it saves as one patient visit record.</p>
         </div>
-        <button id="resetFormBtn" class="btn btn-outline btn-sm" style="display:none;">&#8635; Start New Assessment</button>
+        <button id="resetFormBtn" class="btn btn-outline btn-sm">&#8635; Clear Form</button>
       </div>
 
+      <!-- The single assessment form lives here while creating a record. When
+           a record is edited, this exact form is moved into the Edit view
+           under Find / Edit (see enterEditMode_ in app.js), so editing never
+           shows up under "New Assessment", and any half-typed new assessment
+           is kept safe and restored afterwards. -->
+      <div id="assessmentFormHost">
       <div id="assessmentFormWrap">
         <!-- PATIENT & VISIT DETAILS -->
         <div class="panel">
           <h3>Patient &amp; Visit Details</h3>
           <div class="form-grid">
             <div class="field">
-              <label>Patient Name <span class="req">*</span></label>
-              <input id="f_patientName" type="text" placeholder="e.g. Ramesh Kumar">
+              <label for="f_patientName">Patient Name <span class="req">*</span></label>
+              <input id="f_patientName" type="text" placeholder="e.g. Ramesh Kumar" autocomplete="off">
               <div class="field-error">Patient name is required</div>
             </div>
             <div class="field">
-              <label>Contact No. <span class="req">*</span></label>
-              <input id="f_phone" type="tel" placeholder="10-digit mobile number">
-              <div class="field-error">Valid phone number is required</div>
+              <label for="f_phone">Contact No. <span class="req">*</span></label>
+              <input id="f_phone" type="tel" inputmode="tel" placeholder="10-digit mobile number" autocomplete="off">
+              <div class="field-error">Enter a valid phone number (at least 10 digits)</div>
             </div>
             <div class="field">
-              <label>Date <span class="req">*</span></label>
+              <label for="f_date">Date <span class="req">*</span></label>
               <input id="f_date" type="date">
+              <div class="field-error">Date is required</div>
             </div>
             <div class="field">
-              <label>Age / Sex</label>
+              <label for="f_age">Age / Sex</label>
               <div class="age-sex-row">
-                <input id="f_age" type="number" min="0" max="130" placeholder="Age">
-                <select id="f_sex"><option value="">Sex</option><option>Male</option><option>Female</option><option>Other</option></select>
+                <input id="f_age" type="number" inputmode="numeric" min="0" max="130" placeholder="Age">
+                <select id="f_sex" aria-label="Sex"><option value="">Sex</option><option>Male</option><option>Female</option><option>Other</option></select>
               </div>
             </div>
             <div class="field">
-              <label>UHID / File No.</label>
+              <label for="f_uhid">UHID / File No.</label>
               <input id="f_uhid" type="text" placeholder="optional">
             </div>
             <div class="field">
-              <label>Referred By</label>
+              <label for="f_referredBy">Referred By</label>
               <input id="f_referredBy" type="text" placeholder="Doctor / self / etc.">
             </div>
             <div class="field">
-              <label>Occupation</label>
+              <label for="f_occupation">Occupation</label>
               <input id="f_occupation" type="text">
             </div>
             <div class="field">
-              <label>Email ID</label>
-              <input id="f_email" type="email" placeholder="optional">
+              <label for="f_email">Email ID</label>
+              <input id="f_email" type="email" inputmode="email" placeholder="optional" autocomplete="off">
+              <div class="field-error">Enter a valid email address, or leave it blank</div>
             </div>
             <div class="field span-2">
-              <label>Address</label>
+              <label for="f_address">Address</label>
               <textarea id="f_address" rows="2"></textarea>
             </div>
             <div class="field">
-              <label>How Did They Know Us?</label>
+              <label for="f_howKnow">How Did They Know Us?</label>
               <select id="f_howKnow"><option value="">Select...</option></select>
             </div>
             <div class="field">
-              <label>Patient ID <span class="field-hint-inline">(manual, optional)</span></label>
+              <label for="f_patientId">Patient ID <span class="field-hint-inline">(manual, optional)</span></label>
               <input id="f_patientId" type="text" placeholder="Your own internal ID, if any">
             </div>
             <div class="field">
-              <label>Invoice Number <span class="field-hint-inline">(fill later via Find/Edit)</span></label>
+              <label for="f_invoiceNumber">Invoice Number <span class="field-hint-inline">(fill later via Find/Edit)</span></label>
               <input id="f_invoiceNumber" type="text" placeholder="Leave blank for now">
             </div>
             <div class="field">
-              <label>Issue Type <span class="req">*</span></label>
+              <label for="f_issueType">Issue Type <span class="req">*</span></label>
               <div class="issue-select-row">
                 <select id="f_issueType"><option value="">Select issue...</option></select>
                 <button id="addIssueBtn" type="button" class="btn btn-outline btn-sm">+ New</button>
@@ -151,11 +182,11 @@
           <h3>Chief Complaint &amp; History</h3>
           <div class="form-grid">
             <div class="field span-2">
-              <label>Chief Complaint</label>
+              <label for="f_chiefComplaint">Chief Complaint</label>
               <textarea id="f_chiefComplaint" rows="2"></textarea>
             </div>
             <div class="field span-2">
-              <label>History of Present Illness</label>
+              <label for="f_hpi">History of Present Illness</label>
               <textarea id="f_hpi" rows="3"></textarea>
             </div>
           </div>
@@ -165,19 +196,19 @@
         <div class="panel">
           <h3>Observation &amp; Pain Assessment</h3>
           <div class="form-grid">
-            <div class="field"><label>Posture</label><input id="f_posture" type="text"></div>
-            <div class="field"><label>Gait</label><input id="f_obsGait" type="text"></div>
-            <div class="field"><label>Deformity / Swelling</label><input id="f_deformitySwelling" type="text"></div>
+            <div class="field"><label for="f_posture">Posture</label><input id="f_posture" type="text"></div>
+            <div class="field"><label for="f_obsGait">Gait</label><input id="f_obsGait" type="text"></div>
+            <div class="field"><label for="f_deformitySwelling">Deformity / Swelling</label><input id="f_deformitySwelling" type="text"></div>
           </div>
           <div class="vas-wrap">
-            <label>Pain Assessment (VAS)</label>
+            <label for="f_vas">Pain Assessment (VAS)</label>
             <input id="f_vas" type="range" min="0" max="10" step="1" value="0">
             <div class="vas-scale" id="vasScaleDisplay"></div>
           </div>
           <div class="form-grid" style="margin-top:10px;">
-            <div class="field"><label>Nature of Pain</label><input id="f_natureOfPain" type="text"></div>
-            <div class="field"><label>Aggravating Factors</label><input id="f_aggravatingFactors" type="text"></div>
-            <div class="field"><label>Relieving Factors</label><input id="f_relievingFactors" type="text"></div>
+            <div class="field"><label for="f_natureOfPain">Nature of Pain</label><input id="f_natureOfPain" type="text"></div>
+            <div class="field"><label for="f_aggravatingFactors">Aggravating Factors</label><input id="f_aggravatingFactors" type="text"></div>
+            <div class="field"><label for="f_relievingFactors">Relieving Factors</label><input id="f_relievingFactors" type="text"></div>
           </div>
         </div>
 
@@ -191,7 +222,7 @@
             <label class="pmh-check"><input type="checkbox" id="f_pmhCardiac"> Cardiac</label>
           </div>
           <div class="field">
-            <label>Surgery / Fracture / Hospitalization (Specify)</label>
+            <label for="f_surgeryFractureHospitalization">Surgery / Fracture / Hospitalization (Specify)</label>
             <input id="f_surgeryFractureHospitalization" type="text">
           </div>
         </div>
@@ -211,12 +242,12 @@
         <!-- BODY DIAGRAM -->
         <div class="panel">
           <h3>Mark Pain Point &amp; Radiating Pain</h3>
-          <p class="field-hint">Pick a marker color below, then click anywhere on a diagram to drop a point. Click an existing point to remove it. Nothing here is saved as an image - only the coordinates and colors are stored, and redrawn identically every time.</p>
+          <p class="field-hint">Pick a marker color below, then tap anywhere on a diagram to drop a point. Tap an existing point to remove it. Only the coordinates and colors are stored, and redrawn identically every time.</p>
           <div class="mark-toolbar">
-            <button type="button" class="mark-tool active" data-color="#d1352f" data-type="pain">&#9679; Pain Point</button>
-            <button type="button" class="mark-tool" data-color="#2778b7" data-type="radiating">&#9679; Radiating Point</button>
+            <button type="button" class="mark-tool active" data-color="#d1352f" data-type="pain"><span class="mt-dot" style="background:#d1352f"></span>Pain Point</button>
+            <button type="button" class="mark-tool" data-color="#2778b7" data-type="radiating"><span class="mt-dot" style="background:#2778b7"></span>Radiating Point</button>
             <span class="mark-tool-custom">
-              <input type="color" id="markCustomColor" value="#a8d339">
+              <input type="color" id="markCustomColor" value="#a8d339" aria-label="Custom marker color">
               <button type="button" class="mark-tool" id="markCustomBtn" data-color="#a8d339" data-type="custom">Custom</button>
             </span>
             <button type="button" class="btn btn-outline btn-sm" id="clearMarksBtn">Clear All Points</button>
@@ -236,15 +267,15 @@
           <h3>Functional Assessment</h3>
           <div class="form-grid">
             <div class="field">
-              <label>Ambulation</label>
+              <label for="f_ambulation">Ambulation</label>
               <select id="f_ambulation"><option value="">Select...</option><option>Independent</option><option>Assisted</option></select>
             </div>
             <div class="field">
-              <label>Stair Climbing</label>
+              <label for="f_stairClimbing">Stair Climbing</label>
               <select id="f_stairClimbing"><option value="">Select...</option><option>Independent</option><option>Assisted</option></select>
             </div>
             <div class="field">
-              <label>ADLs</label>
+              <label for="f_adls">ADLs</label>
               <select id="f_adls"><option value="">Select...</option><option>Independent</option><option>Assisted</option></select>
             </div>
           </div>
@@ -254,23 +285,23 @@
         <div class="panel">
           <h3>Balance</h3>
           <div class="form-grid">
-            <div class="field"><label>Single Leg Stance</label><input id="f_balanceSingleLegStance" type="text"></div>
-            <div class="field"><label>Romberg Test</label><input id="f_balanceRombergTest" type="text"></div>
+            <div class="field"><label for="f_balanceSingleLegStance">Single Leg Stance</label><input id="f_balanceSingleLegStance" type="text"></div>
+            <div class="field"><label for="f_balanceRombergTest">Romberg Test</label><input id="f_balanceRombergTest" type="text"></div>
           </div>
         </div>
         <div class="panel">
           <h3>Gait</h3>
           <div class="form-grid">
-            <div class="field"><label>Pattern</label><input id="f_gaitPattern" type="text"></div>
-            <div class="field"><label>Cadence</label><input id="f_gaitCadence" type="text"></div>
-            <div class="field"><label>Limping</label><input id="f_gaitLimping" type="text"></div>
+            <div class="field"><label for="f_gaitPattern">Pattern</label><input id="f_gaitPattern" type="text"></div>
+            <div class="field"><label for="f_gaitCadence">Cadence</label><input id="f_gaitCadence" type="text"></div>
+            <div class="field"><label for="f_gaitLimping">Limping</label><input id="f_gaitLimping" type="text"></div>
           </div>
         </div>
 
         <!-- CLINICAL DIAGNOSIS / GOALS / PLAN -->
         <div class="panel">
           <h3>Clinical Diagnosis</h3>
-          <div class="field"><textarea id="f_clinicalDiagnosis" rows="2"></textarea></div>
+          <div class="field"><textarea id="f_clinicalDiagnosis" rows="2" aria-label="Clinical diagnosis"></textarea></div>
         </div>
         <div class="panel">
           <div class="two-col">
@@ -290,57 +321,95 @@
         <!-- FOLLOW UP -->
         <div class="panel">
           <h3>Follow Up / Notes</h3>
-          <div class="field"><textarea id="f_followUpNotes" rows="4"></textarea></div>
-          <div class="field" style="max-width:260px;"><label>Next Review Date</label><input id="f_nextReviewDate" type="date"></div>
+          <div class="field"><textarea id="f_followUpNotes" rows="4" aria-label="Follow up notes"></textarea></div>
+          <div class="field" style="max-width:260px;"><label for="f_nextReviewDate">Next Review Date</label><input id="f_nextReviewDate" type="date"></div>
         </div>
 
         <!-- PHYSIOTHERAPIST SIGNATURE -->
         <div class="panel">
           <h3>Physiotherapist Signature</h3>
-          <p class="field-hint">Pulled in automatically from the selected physiotherapist's own login - uploaded once from Admin Settings &rarr; My Login, never drawn or typed here.</p>
+          <p class="field-hint" id="formSignatureHint">Pulled in automatically from the selected physiotherapist's own login - uploaded once from Admin Settings &rarr; My Login, never drawn or typed here.</p>
           <div class="sig-preview-row">
             <div class="sig-preview-box">
-              <img id="formSignaturePreview" class="sig-preview-img" style="display:none;">
+              <img id="formSignaturePreview" class="sig-preview-img" style="display:none;" alt="Signature">
               <span id="formSignatureEmpty" class="sig-preview-empty">No physiotherapist selected yet</span>
             </div>
             <div id="formSignatureCaption" class="sig-preview-caption"></div>
           </div>
         </div>
 
-        <!-- SIGN & SAVE -->
-        <div class="panel">
-          <h3>Confirm &amp; Save (Physiotherapist Authorization Required)</h3>
+        <!-- SIGN & SAVE (create) / CONFIRM & SAVE CHANGES (edit) -->
+        <div class="panel gate-panel" id="signSavePanel">
+          <h3 id="signSaveTitle">Confirm &amp; Save (Physiotherapist Authorization Required)</h3>
+
+          <!-- Edit mode only: mandatory reason, stored with the record's edit history -->
+          <div class="field edit-only edit-reason-field" id="editReasonField">
+            <label for="f_editReason">Reason for Edit <span class="req">*</span></label>
+            <textarea id="f_editReason" rows="2" maxlength="500" placeholder="e.g. Added invoice number after billing / Corrected ROM values / Patient's phone number was wrong"></textarea>
+            <div class="field-row-between">
+              <div class="field-error">A Reason for Edit is required before changes can be saved (at least 3 characters)</div>
+              <span class="char-count" id="editReasonCount">0 / 500</span>
+            </div>
+          </div>
+
           <div class="biller-box">
             <div id="physioAuthFields" style="display:contents;">
               <div class="field" style="margin:0;">
-                <label>Physiotherapist</label>
+                <label for="f_physioId" id="f_physioIdLabel">Physiotherapist</label>
                 <select id="f_physioId"><option value="">Select physiotherapist...</option></select>
+                <div class="field-error">Choose who is authorizing</div>
               </div>
               <div class="field" style="margin:0;">
-                <label>Password</label>
-                <input id="f_physioPassword" type="password" placeholder="Password">
+                <label for="f_physioPassword" id="f_physioPasswordLabel">Password</label>
+                <input id="f_physioPassword" type="password" placeholder="Password" autocomplete="new-password">
+                <div class="field-error">Password is required</div>
               </div>
             </div>
             <div class="field" id="physioLockedField" style="margin:0; display:none;">
-              <label>Assessed By</label>
+              <label for="physioLockedText">Assessed By</label>
               <input type="text" id="physioLockedText" disabled>
             </div>
             <div class="field" id="physioSignPasswordField" style="margin:0; display:none;">
-              <label>Confirm Your Password to Sign</label>
-              <input type="password" id="f_physioOwnPassword" placeholder="Your password">
+              <label for="f_physioOwnPassword" id="f_physioOwnPasswordLabel">Confirm Your Password to Sign</label>
+              <input type="password" id="f_physioOwnPassword" placeholder="Your password" autocomplete="new-password">
+              <div class="field-error">Password is required</div>
             </div>
-            <button id="saveAssessmentBtn" class="btn btn-primary">Save &amp; Generate Record</button>
+            <div class="gate-actions">
+              <button id="cancelEditInlineBtn" type="button" class="btn btn-outline edit-only">Cancel</button>
+              <button id="saveAssessmentBtn" type="button" class="btn btn-primary">Save &amp; Generate Record</button>
+            </div>
           </div>
-          <div id="physioStatus" class="biller-status"></div>
+          <div id="physioStatus" class="biller-status" role="status"></div>
         </div>
+      </div>
       </div>
 
     </section>
 
-    <!-- ===================== RECORD PREVIEW (after save / from Find-Edit) =====================
-         Independent top-level view (its own nav-less .view section) rather than being nested
-         inside #view-assessment - this is what fixes "Open" wrongly landing on New Assessment:
-         showing this view no longer requires activating the New Assessment section at all. -->
+    <!-- ===================== EDIT RECORD VIEW (lives under Find / Edit) ===================== -->
+    <section id="view-edit" class="view">
+      <div class="view-header">
+        <div>
+          <h2 id="editHeading">Edit Record</h2>
+          <p id="editSub">&nbsp;</p>
+        </div>
+        <button id="cancelEditBtn" class="btn btn-outline btn-sm">&#10005; Cancel Edit</button>
+      </div>
+      <div class="edit-banner">
+        <span class="edit-banner-ic">&#9998;</span>
+        <span>You are editing an existing record. Nothing is changed until you press <b>Save Changes</b> - a <b>Reason for Edit</b> is required and is kept in the record's edit history.</span>
+      </div>
+      <div id="editFormHost"></div>
+      <div class="edit-savebar" id="editSaveBar">
+        <span class="edit-savebar-text" id="editSaveBarText">No changes yet</span>
+        <div class="edit-savebar-actions">
+          <button type="button" class="btn btn-outline btn-sm" id="editSaveBarCancelBtn">Cancel</button>
+          <button type="button" class="btn btn-primary btn-sm" id="editSaveBarSaveBtn">&#128190; Save Changes</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== RECORD PREVIEW (after save / from Find-Edit) ===================== -->
     <section id="view-record-preview" class="view record-preview-section">
       <div class="view-header">
         <div>
@@ -354,13 +423,13 @@
           <div class="badges"><span class="badge badge-ok" id="previewSavedBadge">&#10003; Saved</span></div>
           <div class="preview-actions-buttons">
             <button id="editRecordBtn" class="btn btn-outline btn-sm">&#9998; Edit This Record</button>
-            <button id="shareRecordBtn" class="btn btn-primary btn-sm">&#128257; Share / Print</button>
+            <button id="shareRecordBtn" class="btn btn-primary btn-sm">&#128257; Share / Print / PDF</button>
           </div>
         </div>
+        <div id="recordEditInfo" class="record-edit-info" hidden></div>
         <div class="doc-scale-outer">
           <div class="doc-paper doc-scale-inner" id="docPaper"></div>
         </div>
-        <div class="doc-paper" id="printSnapshot" aria-hidden="true"></div>
       </div>
     </section>
 
@@ -369,11 +438,11 @@
       <div class="view-header">
         <div>
           <h2>Find / Edit Record</h2>
-          <p>Search by Visit ID, Patient ID, Patient Visit ID, phone or name. Editing requires Super Admin or the owning physiotherapist.</p>
+          <p>Search by Visit ID, Patient ID, Patient Visit ID, phone, name or invoice number. Open a record, then use "Edit This Record" to change it.</p>
         </div>
       </div>
       <div class="lookup-search">
-        <input id="lookupQuery" type="text" placeholder="Search Visit ID, Patient ID, phone or name...">
+        <input id="lookupQuery" type="search" enterkeyhint="search" placeholder="Search Visit ID, Patient ID, phone or name..." autocomplete="off">
         <button id="lookupBtn" class="btn btn-primary">Search</button>
       </div>
       <div id="lookupResults" class="lookup-results"></div>
@@ -436,7 +505,7 @@
         <button id="refreshDashboardBtn" class="btn btn-outline btn-sm">&#128260; Refresh All</button>
       </div>
 
-      <div class="dash-grid">
+      <div class="dash-grid" id="dashDefaultGrid">
         <div class="dash-card kpi-card c-teal dash-card-filterable" data-widget="totalVisits">
           <div class="dash-card-main">
             <div class="icon">&#128197;</div>
@@ -456,7 +525,7 @@
         <div class="dash-card chart-card wide dash-card-filterable" data-widget="issueBar">
           <div class="dash-card-main">
             <h4>Visits by Issue Type</h4>
-            <div id="issueBarChart"></div>
+            <div id="issueBarChart" class="chart-scroll"></div>
           </div>
           <div class="dash-card-filters" data-widget-filters="issueBar"></div>
         </div>
@@ -489,16 +558,16 @@
 
     <!-- CUSTOM CHART BUILDER MODAL -->
     <div id="chartBuilderModal" class="modal-overlay">
-      <div class="modal-box">
+      <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="chartBuilderTitle">
         <h3 id="chartBuilderTitle">New Chart</h3>
         <input type="hidden" id="cb_chartId">
         <div class="form-grid">
           <div class="field span-2">
-            <label>Chart Name</label>
+            <label for="cb_name">Chart Name</label>
             <input id="cb_name" type="text" placeholder="e.g. Top Issues This Month">
           </div>
           <div class="field span-2">
-            <label>Data Source</label>
+            <label for="cb_dataSource">Data Source</label>
             <select id="cb_dataSource">
               <option value="visits">Visits (any assessment field)</option>
               <option value="patients">Patients (running total)</option>
@@ -507,11 +576,11 @@
             <div id="cb_dataSourceHint" class="field-hint" style="margin-top:6px;"></div>
           </div>
           <div class="field" id="cb_dimensionField">
-            <label>Group By</label>
+            <label for="cb_dimension">Group By</label>
             <select id="cb_dimension"></select>
           </div>
           <div class="field">
-            <label>Measure</label>
+            <label for="cb_metric">Measure</label>
             <select id="cb_metric">
               <option value="count">Count (how many records)</option>
               <option value="sum">Sum (add up a number field)</option>
@@ -519,11 +588,11 @@
             </select>
           </div>
           <div class="field" id="cb_metricFieldWrap">
-            <label>Number Field</label>
+            <label for="cb_metricField">Number Field</label>
             <select id="cb_metricField"><option value="VAS">VAS (Pain Score)</option><option value="Age">Age</option></select>
           </div>
           <div class="field">
-            <label>Chart Type</label>
+            <label for="cb_type">Chart Type</label>
             <select id="cb_type">
               <option value="bar">Bar Chart</option>
               <option value="pie">Pie Chart</option>
@@ -531,12 +600,12 @@
               <option value="number">Number Card</option>
             </select>
           </div>
-          <div class="field" id="cb_topNField"><label>Show Top</label><input id="cb_topN" type="number" min="0" placeholder="0 = show all"></div>
+          <div class="field" id="cb_topNField"><label for="cb_topN">Show Top</label><input id="cb_topN" type="number" min="0" placeholder="0 = show all"></div>
           <div class="field" id="cb_sortDirField">
-            <label>Order</label>
+            <label for="cb_sortDir">Order</label>
             <select id="cb_sortDir"><option value="desc">Highest first</option><option value="asc">Lowest first</option></select>
           </div>
-          <div class="field" id="cb_colorField"><label>Color</label><input id="cb_color" type="color" value="#0f6e5c"></div>
+          <div class="field" id="cb_colorField"><label for="cb_color">Color</label><input id="cb_color" type="color" value="#0f6e5c"></div>
         </div>
         <div id="chartBuilderStatus" class="biller-status"></div>
         <div class="modal-actions">
@@ -568,12 +637,12 @@
         <div class="field-hint" style="margin-bottom:14px;">Most changes below require Super Admin credentials.</div>
         <div class="form-grid" style="margin-bottom:16px;">
           <div class="field">
-            <label>Super Admin Username</label>
-            <input id="admin_su_user" type="text">
+            <label for="admin_su_user">Super Admin Username</label>
+            <input id="admin_su_user" type="text" autocomplete="off" autocapitalize="off" spellcheck="false">
           </div>
           <div class="field">
-            <label>Super Admin Password</label>
-            <input id="admin_su_pass" type="password">
+            <label for="admin_su_pass">Super Admin Password</label>
+            <input id="admin_su_pass" type="password" autocomplete="new-password">
           </div>
         </div>
 
@@ -592,27 +661,27 @@
         <div id="tab-clinic" class="admin-pane">
           <div class="form-grid">
             <div class="field span-2">
-              <label>App Logo URL (sidebar / login - square works best)</label>
+              <label for="s_logo">App Logo URL (sidebar / login - square works best)</label>
               <input id="s_logo" type="text" placeholder="https://...">
             </div>
             <div class="field span-2">
-              <label>Print Logo URL (assessment sheet header - rectangular logo recommended)</label>
+              <label for="s_printLogo">Print Logo URL (assessment sheet header - rectangular logo recommended)</label>
               <input id="s_printLogo" type="text" placeholder="https://... (leave blank to use App Logo)">
             </div>
-            <div class="field"><label>Clinic Name</label><input id="s_clinicName" type="text"></div>
-            <div class="field"><label>Phone</label><input id="s_phone" type="text"></div>
-            <div class="field span-2"><label>Address</label><textarea id="s_address" rows="2"></textarea></div>
-            <div class="field"><label>Website</label><input id="s_website" type="text"></div>
-            <div class="field"><label>Clinic Email</label><input id="s_clinicEmail" type="text"></div>
-            <div class="field"><label>Registration / License No. (optional)</label><input id="s_registrationNo" type="text"></div>
+            <div class="field"><label for="s_clinicName">Clinic Name</label><input id="s_clinicName" type="text"></div>
+            <div class="field"><label for="s_phone">Phone</label><input id="s_phone" type="text"></div>
+            <div class="field span-2"><label for="s_address">Address</label><textarea id="s_address" rows="2"></textarea></div>
+            <div class="field"><label for="s_website">Website</label><input id="s_website" type="text"></div>
+            <div class="field"><label for="s_clinicEmail">Clinic Email</label><input id="s_clinicEmail" type="text"></div>
+            <div class="field"><label for="s_registrationNo">Registration / License No. (optional)</label><input id="s_registrationNo" type="text"></div>
             <div class="field span-2">
               <label>Social Links (footer of emailed records)</label>
             </div>
-            <div class="field"><label>WhatsApp Number</label><input id="s_socialWhatsapp" type="text" placeholder="9629495946"></div>
-            <div class="field"><label>Instagram URL</label><input id="s_socialInstagram" type="text"></div>
-            <div class="field"><label>Facebook URL</label><input id="s_socialFacebook" type="text"></div>
-            <div class="field"><label>LinkedIn URL</label><input id="s_socialLinkedin" type="text"></div>
-            <div class="field"><label>YouTube URL</label><input id="s_socialYoutube" type="text"></div>
+            <div class="field"><label for="s_socialWhatsapp">WhatsApp Number</label><input id="s_socialWhatsapp" type="text" placeholder="9629495946"></div>
+            <div class="field"><label for="s_socialInstagram">Instagram URL</label><input id="s_socialInstagram" type="text"></div>
+            <div class="field"><label for="s_socialFacebook">Facebook URL</label><input id="s_socialFacebook" type="text"></div>
+            <div class="field"><label for="s_socialLinkedin">LinkedIn URL</label><input id="s_socialLinkedin" type="text"></div>
+            <div class="field"><label for="s_socialYoutube">YouTube URL</label><input id="s_socialYoutube" type="text"></div>
           </div>
           <button id="saveClinicBtn" class="btn btn-primary" style="margin-top:10px;">Save Clinic Details</button>
           <div id="clinicStatus" class="biller-status"></div>
@@ -621,7 +690,7 @@
         <!-- ISSUES LIST TAB -->
         <div id="tab-issues" class="admin-pane">
           <div class="issue-add-row">
-            <input id="newIssueName" type="text" placeholder="New issue / diagnosis type name">
+            <input id="newIssueName" type="text" placeholder="New issue / diagnosis type name" aria-label="New issue name">
             <button id="addIssueAdminBtn" class="btn btn-outline btn-sm">+ Add</button>
           </div>
           <div class="table-scroll">
@@ -750,7 +819,7 @@
           <!-- AUTHORIZATION BOX -->
           <div class="theme-section">
             <h4>Authorization Highlight Box</h4>
-            <p>The highlighted box on the assessment form ("Confirm &amp; Save") and in Find/Edit that holds the physiotherapist or Super Admin credential fields.</p>
+            <p>The highlighted box on the assessment form ("Confirm &amp; Save") that holds the physiotherapist or Super Admin credential fields.</p>
             <div class="theme-section-body">
               <div class="theme-fields">
                 <div class="theme-field"><label>Box Background</label><input type="color" id="th_ThemeGateBgColor" class="th-input" data-preview="gatePreview"></div>
@@ -767,7 +836,7 @@
           <!-- ASSESSMENT SHEET DESIGN -->
           <div class="theme-section">
             <h4>Assessment Sheet Design</h4>
-            <p>One shared design for every assessment record, wherever it's shown - the on-screen preview, Print, Save-as-PDF, and the emailed PDF attachment all use these exact same settings, so a patient never sees two differently-styled versions of the same record.</p>
+            <p>One shared design for every assessment record, wherever it's shown - the on-screen preview, Print, Save-as-PDF, and the emailed PDF attachment all use these exact same settings.</p>
             <div class="theme-section-body">
               <div class="theme-fields">
                 <div class="theme-field"><label>Header Color</label><input type="color" id="th_ThemeDocHeaderColor" class="th-input" data-preview="docPreview"></div>
@@ -805,9 +874,9 @@
             <div class="theme-subrow">
               <label class="theme-subrow-label">Logo Size (px)</label>
               <div class="theme-logo-size-row">
-                <input type="number" id="th_ThemeDocLogoWidth" class="th-input th-logo-num" min="20" max="300">
+                <input type="number" id="th_ThemeDocLogoWidth" class="th-input th-logo-num" min="20" max="300" aria-label="Logo width">
                 <span>&times;</span>
-                <input type="number" id="th_ThemeDocLogoHeight" class="th-input th-logo-num" min="20" max="300">
+                <input type="number" id="th_ThemeDocLogoHeight" class="th-input th-logo-num" min="20" max="300" aria-label="Logo height">
                 <button type="button" class="btn btn-outline btn-sm logo-preset-btn" data-w="80" data-h="80">Square</button>
                 <button type="button" class="btn btn-outline btn-sm logo-preset-btn" data-w="140" data-h="60">Wide rectangle</button>
                 <button type="button" class="btn btn-outline btn-sm logo-preset-btn" data-w="70" data-h="110">Tall rectangle</button>
@@ -834,7 +903,7 @@
           <!-- TEXT & BACKGROUNDS -->
           <div class="theme-section">
             <h4>Text &amp; Backgrounds</h4>
-            <p>These five work together so they're grouped here - "Card Background" is what every panel/box on screen sits on (if text seems to "disappear", the text color you picked is too close to this card color). "Page Background" is the strip of color around the cards on every page. The sidebar, login screen, headings, tabs and assessment sheet header all have their own separate colors above - this section won't touch those.</p>
+            <p>"Card Background" is what every panel/box on screen sits on (if text seems to "disappear", the text color you picked is too close to this card color). "Page Background" is the strip of color around the cards on every page.</p>
             <div class="theme-section-body">
               <div class="theme-fields">
                 <div class="theme-field"><label>Heading / Primary Text</label><input type="color" id="th_ThemeHeadingColor" class="th-input" data-preview="textPreview"></div>
@@ -858,7 +927,7 @@
           <!-- CHART COLORS -->
           <div class="theme-section">
             <h4>Chart &amp; Number Card Colors</h4>
-            <p>Used in order for every bar/pie/donut chart on the Dashboard (and any custom chart you build). The first 2 colors also drive the Dashboard's KPI number cards, and are offered as the default color when you build a new chart.</p>
+            <p>Used in order for every bar/pie/donut chart on the Dashboard (and any custom chart you build).</p>
             <div class="theme-section-body">
               <div class="theme-fields theme-fields-chart">
                 <div class="theme-chart-swatches" id="themeChartSwatches"></div>
@@ -892,7 +961,7 @@
               <button type="button" class="btn btn-primary btn-sm" id="addNewDatabaseBtn">&#10133; Add New Database Now</button>
               <button type="button" class="btn btn-outline btn-sm ds-danger-btn" id="resetToActiveOnlyBtn">&#9888;&#65039; Reset Numbering &amp; Forget Old Archives</button>
             </div>
-            <div id="dbExpandResult" style="display:none;margin-top:12px;font-size:12.5px;color:var(--ink-soft);line-height:1.6;background:var(--bg);border-radius:var(--radius-sm);padding:10px 12px;"></div>
+            <div id="dbExpandResult" class="ds-expand-result" style="display:none;"></div>
             <p class="ds-note">
               Visit and Issue numbers are tracked by this app separately from the spreadsheet itself - that's
               deliberate, it's what lets numbering carry on smoothly across an "Add New Database" switch without
@@ -910,8 +979,8 @@
           <div id="accountAdminPane">
             <h4>Super Admin Login</h4>
             <div class="form-grid">
-              <div class="field"><label>New Username</label><input id="acc_newUser" type="text"></div>
-              <div class="field"><label>New Password</label><input id="acc_newPass" type="password"></div>
+              <div class="field"><label for="acc_newUser">New Username</label><input id="acc_newUser" type="text" autocomplete="off"></div>
+              <div class="field"><label for="acc_newPass">New Password</label><input id="acc_newPass" type="password" autocomplete="new-password"></div>
             </div>
             <button id="saveAdminLoginBtn" class="btn btn-primary btn-sm">Update Login</button>
             <div id="adminLoginStatus" class="biller-status"></div>
@@ -919,8 +988,8 @@
           <div id="accountPhysioPane" style="display:none;">
             <h4>My Password</h4>
             <div class="form-grid">
-              <div class="field"><label>Current Password</label><input id="acc_currentPass" type="password"></div>
-              <div class="field"><label>New Password</label><input id="acc_physioNewPass" type="password"></div>
+              <div class="field"><label for="acc_currentPass">Current Password</label><input id="acc_currentPass" type="password" autocomplete="current-password"></div>
+              <div class="field"><label for="acc_physioNewPass">New Password</label><input id="acc_physioNewPass" type="password" autocomplete="new-password"></div>
             </div>
             <button id="savePhysioPassBtn" class="btn btn-primary btn-sm">Update Password</button>
             <div id="physioPassStatus" class="biller-status"></div>
@@ -928,10 +997,10 @@
             <h4 style="margin-top:22px;">My Signature</h4>
             <p class="field-hint">Upload a PNG of your signature once - it will be pulled in automatically every time you sign an assessment.</p>
             <div class="sig-upload-row">
-              <img id="mySignaturePreview" class="sig-preview" style="display:none;">
-              <input type="file" id="signatureFileInput" accept="image/png">
+              <img id="mySignaturePreview" class="sig-preview" style="display:none;" alt="My signature">
+              <input type="file" id="signatureFileInput" accept="image/png" aria-label="Signature PNG file">
             </div>
-            <div class="field" style="max-width:260px;"><label>Confirm Password to Upload</label><input id="acc_sigPassword" type="password"></div>
+            <div class="field" style="max-width:260px;"><label for="acc_sigPassword">Confirm Password to Upload</label><input id="acc_sigPassword" type="password" autocomplete="current-password"></div>
             <button id="uploadSignatureBtn" class="btn btn-primary btn-sm">Upload Signature</button>
             <div id="signatureStatus" class="biller-status"></div>
           </div>
@@ -943,7 +1012,7 @@
 
 <!-- ===================== SHARE RECORD MODAL ===================== -->
 <div id="shareRecordModal" class="modal-overlay">
-  <div class="modal-box">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="shareRecordTitle">
     <h3 id="shareRecordTitle">Share Record</h3>
     <div class="share-btn-row">
       <button id="sharePrintBtn" class="btn btn-outline btn-sm">&#128424;&#65039; Print</button>
@@ -951,16 +1020,25 @@
       <button id="shareViaEmailBtn" class="btn btn-outline btn-sm">&#128231; Email</button>
       <button id="shareViaWhatsappBtn" class="btn btn-outline btn-sm">&#128241; WhatsApp</button>
     </div>
+    <p class="share-hint" id="shareHint"></p>
+    <div id="sharePdfReady" class="share-pdf-ready" hidden>
+      <span class="share-pdf-name" id="sharePdfName">PDF ready</span>
+      <div class="share-pdf-actions">
+        <a id="sharePdfDownloadLink" class="btn btn-primary btn-sm" href="#" download>&#11015;&#65039; Download PDF</a>
+        <a id="sharePdfOpenLink" class="btn btn-outline btn-sm" href="#" target="_blank" rel="noopener">Open</a>
+        <button id="sharePdfShareBtn" type="button" class="btn btn-outline btn-sm" hidden>&#128228; Share PDF</button>
+      </div>
+    </div>
     <div id="shareEmailField" class="field" style="display:none;">
-      <label>Recipient Email</label>
-      <input id="share_email" type="email" placeholder="patient@example.com">
+      <label for="share_email">Recipient Email</label>
+      <input id="share_email" type="email" inputmode="email" placeholder="patient@example.com">
       <button id="shareEmailPreviewBtn" class="btn btn-outline btn-sm" style="margin-top:6px;">Preview Email</button>
     </div>
     <div id="shareWhatsappField" class="field" style="display:none;">
-      <label>WhatsApp Number</label>
-      <input id="share_phone" type="tel" placeholder="10-digit mobile number">
+      <label for="share_phone">WhatsApp Number</label>
+      <input id="share_phone" type="tel" inputmode="tel" placeholder="10-digit mobile number">
     </div>
-    <div id="shareStatus" class="biller-status"></div>
+    <div id="shareStatus" class="biller-status" role="status"></div>
     <div class="modal-actions">
       <button class="btn btn-outline btn-sm" id="share_cancel">Close</button>
       <button class="btn btn-primary btn-sm" id="share_send" style="display:none;">Send</button>
@@ -970,9 +1048,9 @@
 
 <!-- EMAIL PREVIEW MODAL -->
 <div id="emailPreviewModal" class="modal-overlay">
-  <div class="modal-box modal-box-lg">
+  <div class="modal-box modal-box-lg" role="dialog" aria-modal="true" aria-label="Email preview">
     <h3>Email Preview</h3>
-    <iframe id="emailPreviewFrame" class="email-preview-frame"></iframe>
+    <iframe id="emailPreviewFrame" class="email-preview-frame" title="Email preview"></iframe>
     <div class="modal-actions">
       <button class="btn btn-outline btn-sm" id="emailPreview_close">Close</button>
       <button class="btn btn-primary btn-sm" id="emailPreview_send">Send This Email</button>
@@ -982,20 +1060,20 @@
 
 <!-- ADD/EDIT PHYSIOTHERAPIST MODAL -->
 <div id="physioModal" class="modal-overlay">
-  <div class="modal-box">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="physioModalTitle">
     <h3 id="physioModalTitle">Add Physiotherapist</h3>
     <input type="hidden" id="pm_editId">
     <div class="form-grid">
-      <div class="field span-2"><label>Name</label><input id="pm_name" type="text"></div>
-      <div class="field span-2"><label>Password</label><input id="pm_password" type="password" placeholder="Leave blank to keep unchanged (edit mode)"></div>
+      <div class="field span-2"><label for="pm_name">Name</label><input id="pm_name" type="text"></div>
+      <div class="field span-2"><label for="pm_password">Password</label><input id="pm_password" type="password" autocomplete="new-password" placeholder="Leave blank to keep unchanged (edit mode)"></div>
       <div class="field span-2">
-        <label>Signature Image URL <span class="field-hint-inline">(optional - same idea as the App Logo URL in Clinic Details)</span></label>
+        <label for="pm_signatureUrl">Signature Image URL <span class="field-hint-inline">(optional - same idea as the App Logo URL in Clinic Details)</span></label>
         <input id="pm_signatureUrl" type="text" placeholder="https://... link to a PNG of their signature">
       </div>
     </div>
     <div class="sig-preview-row" style="margin-top:8px;">
       <div class="sig-preview-box" style="width:150px;height:60px;">
-        <img id="pm_signaturePreview" class="sig-preview-img" style="display:none;">
+        <img id="pm_signaturePreview" class="sig-preview-img" style="display:none;" alt="Signature preview">
         <span id="pm_signatureEmpty" class="sig-preview-empty">No signature set</span>
       </div>
       <p class="field-hint" style="margin:0;">Super Admin can set this directly here, or the physiotherapist can upload their own from My Login after they log in - either way updates the same field.</p>
@@ -1008,6 +1086,12 @@
   </div>
 </div>
 
-<script src="app.js?v=20260917-01"></script>
+<!-- PRINT ROOT - the ONLY thing printed while a record is open. A direct
+     child of <body>, so print CSS can hide everything else with
+     display:none (no blank pages, no hidden layout) and it never depends on
+     print-time events, which mobile browsers fire unreliably. -->
+<div id="printRoot" aria-hidden="true"></div>
+
+<script src="app.js?v=20261009-02"></script>
 </body>
 </html>
