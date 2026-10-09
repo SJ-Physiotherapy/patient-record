@@ -1,0 +1,4 @@
+# SJ Physiotherapy - internal patient records app.
+# Not a public website: no search engine or AI crawler should visit or index it.
+User-agent: *
+Disallow: /
