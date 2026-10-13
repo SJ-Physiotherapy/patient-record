@@ -3,29 +3,57 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="robots" content="noindex, nofollow">
-<title>SJ Physiotherapy - Billing, Sales and Inventory Analysis System</title>
+<!-- Internal app: never index, list, cache, preview or translate this page in any search engine. -->
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex, notranslate">
+<meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+<meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet">
+<!-- Don't reveal this app's address to other websites (e.g. when opening WhatsApp or a Drive link). -->
+<meta name="referrer" content="same-origin">
+<meta name="theme-color" content="#2778b7">
+<title>SJ Physiotherapy - Patient Assessment &amp; Records System</title>
+<!-- Warm up the connections the app needs first (API + images) while the page is still parsing. -->
+<link rel="preconnect" href="https://script.google.com" crossorigin>
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+<link rel="preconnect" href="https://sjphysiotherapy.in">
 <link rel="icon" href="https://sjphysiotherapy.in/LOGO/favicon.png" type="image/png">
-<link rel="stylesheet" href="style.css?v=20261010-35-family">
+<link rel="stylesheet" href="style.css?v=20261013-01">
 </head>
 <body>
+
+<!-- Shared SVG filter: lifts the near-white grey backdrop of the body-diagram
+     photos to pure white (on screen, in Print and in Save-as-PDF) without
+     touching the figure itself. Kept 0x0 instead of display:none so every
+     browser still resolves the filter reference. -->
+<svg id="svgDefs" class="svg-defs" width="0" height="0" aria-hidden="true" focusable="false">
+  <filter id="bodyWhiten" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%">
+    <!-- 1) white layer whose opacity = the pixel's brightness (luminance) -->
+    <feColorMatrix in="SourceGraphic" type="matrix" result="lum"
+      values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0.2126 0.7152 0.0722 0 0"/>
+    <!-- 2) keep it only where brightness is above ~86-90% (grey/near-white
+         backdrop); darker figure tones get 0 opacity and stay untouched -->
+    <feComponentTransfer in="lum" result="mask"><feFuncA type="linear" slope="25" intercept="-21.5"/></feComponentTransfer>
+    <!-- 3) lay that white over the original picture -->
+    <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="mask"/></feMerge>
+  </filter>
+</svg>
 
 <!-- ===================== LOGIN SCREEN ===================== -->
 <div id="loginScreen" class="login-screen">
   <div class="login-card">
     <img id="loginLogo" class="login-logo" src="https://sjphysiotherapy.in/LOGO/favicon.png" alt="Logo">
     <h1>SJ Physiotherapy</h1>
-    <p class="sub">Billing &amp; Sales Analysis System</p>
-    <div id="loginError" class="login-error"></div>
+    <p class="sub">Patient Assessment &amp; Records System</p>
+    <div id="loginError" class="login-error" role="alert"></div>
     <div class="field">
-      <label for="loginUser">Username</label>
-      <input id="loginUser" type="text" autocomplete="username" placeholder="Enter username">
+      <label for="loginUser">Username / Physiotherapist ID</label>
+      <input id="loginUser" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="Enter username or ID">
     </div>
     <div class="field">
       <label for="loginPass">Password</label>
       <input id="loginPass" type="password" autocomplete="current-password" placeholder="Enter password">
     </div>
     <button id="loginBtn" class="btn btn-primary btn-block">Log In</button>
+    <p class="login-security-note">&#128274; Your password is never stored in this browser - it is checked once against the database and forgotten.</p>
   </div>
 </div>
 
@@ -34,311 +62,396 @@
 
   <aside id="sidebar" class="sidebar">
     <div class="sidebar-brand">
-      <img id="sidebarLogo" src="https://via.placeholder.com/160x160.png?text=LOGO" alt="Logo">
+      <img id="sidebarLogo" src="https://sjphysiotherapy.in/LOGO/favicon.png" alt="Logo">
       <div class="brand-text">
         <div class="name" id="sidebarCompanyName">SJ Physiotherapy</div>
-        <div class="tag">Billing / Sales / Inventory System</div>
+        <div class="tag">Patient Assessment &amp; Records</div>
       </div>
     </div>
     <nav class="nav">
-      <button class="nav-item active" data-view="billing"><span class="ic">&#128196;</span><span class="nav-label">Create Bill</span></button>
-      <button class="nav-item" data-view="inventory"><span class="ic">&#128230;</span><span class="nav-label">Inventory</span></button>
+      <button class="nav-item active" data-view="assessment"><span class="ic">&#128221;</span><span class="nav-label">New Assessment</span></button>
+      <button class="nav-item" data-view="lookup"><span class="ic">&#128269;</span><span class="nav-label">Find / Edit Record</span></button>
       <button class="nav-item" data-view="reports"><span class="ic">&#128203;</span><span class="nav-label">Reports</span></button>
       <button class="nav-item" data-view="dashboard"><span class="ic">&#128202;</span><span class="nav-label">Dashboard</span></button>
-      <button class="nav-item" data-view="lookup"><span class="ic">&#128269;</span><span class="nav-label">Find / Edit Bill</span></button>
-      <button class="nav-item" data-view="letterpad"><span class="ic">&#128221;</span><span class="nav-label">Letterpad</span></button>
-      <button class="nav-item" data-view="admin"><span class="ic">&#9881;&#65039;</span><span class="nav-label">Admin Settings</span></button>
+      <button class="nav-item" id="navAdmin" data-view="admin"><span class="ic">&#9881;&#65039;</span><span class="nav-label">Admin Settings</span></button>
     </nav>
     <div class="sidebar-footer">
       <div class="who">Signed in as <b id="whoAmI">SJ Physiotherapy Admin</b></div>
-      <button id="logoutBtn" class="btn btn-outline btn-sm btn-block" style="border-color:rgba(255,255,255,.4); color:var(--theme-sidebar-text);">Log Out</button>
-
+      <button id="logoutBtn" class="btn btn-outline btn-sm btn-block sidebar-logout">Log Out</button>
       <div class="creator-credit">
-        <div class="creator-credit-name">Created by Raj Vishnu Kumar</div>
-        <div class="creator-credit-icons">
-          <a href="mailto:vishnumatrix4599@gmail.com" title="Email" aria-label="Email">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-              <polyline points="22,6 12,13 2,6"></polyline>
-            </svg>
-          </a>
-          <a href="https://www.linkedin.com/in/rvkadventurer1221/" target="_blank" rel="noopener noreferrer" title="LinkedIn" aria-label="LinkedIn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="2" y="2" width="20" height="20" rx="4"></rect>
-              <text x="12" y="16.5" font-size="10" font-family="Arial, sans-serif" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none">in</text>
-            </svg>
-          </a>
-          <a href="https://rvk-adventurer.github.io/" target="_blank" rel="noopener noreferrer" title="Website" aria-label="Website">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="2" y1="12" x2="22" y2="12"></line>
-              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-            </svg>
-          </a>
-          <a href="https://www.youtube.com/@RVKAdventurer" target="_blank" rel="noopener noreferrer" title="YouTube" aria-label="YouTube">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="2" y="5" width="20" height="14" rx="4"></rect>
-              <polygon points="10,9 16,12 10,15" fill="currentColor" stroke="none"></polygon>
-            </svg>
-          </a>
-        </div>
+        <div class="creator-credit-name">SJ Physiotherapy &bull; Internal System</div>
       </div>
     </div>
   </aside>
+  <div id="sidebarScrim" class="sidebar-scrim"></div>
 
   <div class="main-area">
     <div class="topbar">
-      <button class="hamburger" id="hamburgerBtn">&#9776;</button>
-      <div class="brand-mini"><img id="topbarLogo" src="https://via.placeholder.com/160x160.png?text=LOGO">SJ Physiotherapy</div>
+      <button class="hamburger" id="hamburgerBtn" aria-label="Open menu">&#9776;</button>
+      <div class="brand-mini"><img id="topbarLogo" src="https://sjphysiotherapy.in/LOGO/favicon.png" alt="">SJ Physiotherapy</div>
       <div style="width:28px;"></div>
     </div>
 
     <div id="staleBackendBar" class="stale-backend-bar"></div>
+    <div id="toastHost" class="toast-host" aria-live="polite"></div>
 
-    <!-- ===================== BILLING VIEW ===================== -->
-    <section id="view-billing" class="view active">
+    <!-- ===================== NEW ASSESSMENT VIEW ===================== -->
+    <section id="view-assessment" class="view active">
       <div class="view-header">
         <div>
-          <h2>Create Bill</h2>
-          <p>Fill in patient &amp; treatment details on the left - the bill updates live on the right.</p>
+          <h2 id="assessmentHeading">New Assessment</h2>
+          <p>Fill in every section below exactly as on the clinic's paper assessment sheet - it saves as one patient visit record.</p>
         </div>
+        <button id="resetFormBtn" class="btn btn-outline btn-sm">&#8635; Clear Form</button>
       </div>
 
-      <div class="billing-grid">
-        <!-- LEFT: FORM -->
-        <div class="billing-form">
-
-          <div class="panel">
-            <h3>Patient &amp; Bill Details</h3>
-            <div class="form-grid">
-              <div class="field span-2">
-                <label>Clinic</label>
-                <input id="f_company" type="text" value="SJ Physiotherapy" disabled>
+      <!-- The single assessment form lives here while creating a record. When
+           a record is edited, this exact form is moved into the Edit view
+           under Find / Edit (see enterEditMode_ in app.js), so editing never
+           shows up under "New Assessment", and any half-typed new assessment
+           is kept safe and restored afterwards. -->
+      <div id="assessmentFormHost">
+      <div id="assessmentFormWrap">
+        <!-- PATIENT & VISIT DETAILS -->
+        <div class="panel">
+          <h3>Patient &amp; Visit Details</h3>
+          <div class="form-grid">
+            <div class="field">
+              <label for="f_patientName">Patient Name <span class="req">*</span></label>
+              <input id="f_patientName" type="text" placeholder="e.g. Ramesh Kumar" autocomplete="off">
+              <div class="field-error">Patient name is required</div>
+            </div>
+            <div class="field">
+              <label for="f_phone">Contact No. <span class="req">*</span></label>
+              <input id="f_phone" type="tel" inputmode="tel" placeholder="10-digit mobile number" autocomplete="off">
+              <div class="field-error">Enter a valid phone number (at least 10 digits)</div>
+            </div>
+            <div class="field">
+              <label for="f_date">Date <span class="req">*</span></label>
+              <input id="f_date" type="date">
+              <div class="field-error">Date is required</div>
+            </div>
+            <div class="field">
+              <label for="f_age">Age / Sex</label>
+              <div class="age-sex-row">
+                <input id="f_age" type="number" inputmode="numeric" min="0" max="130" placeholder="Age">
+                <select id="f_sex" aria-label="Sex"><option value="">Sex</option><option>Male</option><option>Female</option><option>Other</option></select>
               </div>
-              <div class="field">
-                <label>Date <span style="color:var(--danger)">*</span></label>
-                <input id="f_date" type="date">
-              </div>
-              <div class="field">
-                <label>Bill ID</label>
-                <input id="f_billId" type="text" disabled placeholder="Auto generated">
-              </div>
-              <div class="field">
-                <label>Patient Name <span style="color:var(--danger)">*</span></label>
-                <input id="f_customerName" type="text" maxlength="60" autocomplete="off" placeholder="e.g. Ramesh Kumar">
-                <div class="field-error">Patient name is required</div>
-              </div>
-              <div class="field">
-                <label>Phone Number <span style="color:var(--danger)">*</span></label>
-                <input id="f_phone" type="tel" inputmode="numeric" autocomplete="off" placeholder="10-digit mobile number">
-                <div class="field-error">Valid phone number is required</div>
-              </div>
-              <div class="field">
-                <label>Patient ID</label>
-                <input id="f_customerId" type="text" disabled placeholder="Auto matched / created">
-                <div class="field-hint" id="custMatchHint"></div>
-              </div>
-              <div class="field">
-                <label>Email</label>
-                <input id="f_email" type="email" placeholder="optional">
-              </div>
-              <div class="field span-2">
-                <label>Address</label>
-                <textarea id="f_address" rows="2" placeholder="Billing address"></textarea>
-              </div>
-              <div class="field span-2">
-                <label>Delivery Address</label>
-                <textarea id="f_deliveryAddress" rows="2" placeholder="Leave blank if same as address"></textarea>
-              </div>
-              <div class="field span-2">
-                <label>Payment Method</label>
-                <select id="f_paymentMethod">
-                  <option value="Cash">Cash in Hand</option>
-                  <option value="Bank">Bank Transaction</option>
-                </select>
-              </div>
-              <div class="field" id="billTaxToggleField" style="display:none;">
-                <label>Apply Tax to This Bill?</label>
-                <div class="toggle-row">
-                  <button type="button" class="toggle" id="f_showTaxToggle"></button>
-                  <span class="toggle-row-label" id="f_showTaxLabel">Hidden</span>
-                </div>
-                <span class="field-hint">Off by default - switch on only if this specific bill needs tax added.</span>
-              </div>
-              <div class="field" id="billBankToggleField" style="display:none;">
-                <label>Show Bank Details on This Bill</label>
-                <div class="toggle-row">
-                  <button type="button" class="toggle on" id="f_showBankToggle"></button>
-                  <span class="toggle-row-label" id="f_showBankLabel">Shown</span>
-                </div>
-              </div>
-              <div class="field" id="billDiscountToggleField" style="display:none;">
-                <label>Apply Discount to This Bill?</label>
-                <div class="toggle-row">
-                  <button type="button" class="toggle" id="f_showDiscountToggle"></button>
-                  <span class="toggle-row-label" id="f_showDiscountLabel">Hidden</span>
-                </div>
-                <span class="field-hint">Off by default - switch on to discount individual products and/or the whole bill.</span>
-              </div>
-              <div class="field" id="f_totalDiscountWrap" style="display:none;">
-                <label>Additional Discount on Whole Bill (%)</label>
-                <input id="f_totalDiscountPct" type="number" min="0" max="100" step="0.01" value="" placeholder="0">
-                <span class="field-hint">Applied on top of any per-product discounts below.</span>
+            </div>
+            <div class="field">
+              <label for="f_uhid">UHID / File No.</label>
+              <input id="f_uhid" type="text" placeholder="optional">
+            </div>
+            <div class="field">
+              <label for="f_referredBy">Referred By</label>
+              <input id="f_referredBy" type="text" placeholder="Doctor / self / etc.">
+            </div>
+            <div class="field">
+              <label for="f_occupation">Occupation</label>
+              <input id="f_occupation" type="text">
+            </div>
+            <div class="field">
+              <label for="f_email">Email ID</label>
+              <input id="f_email" type="email" inputmode="email" placeholder="optional" autocomplete="off">
+              <div class="field-error">Enter a valid email address, or leave it blank</div>
+            </div>
+            <div class="field span-2">
+              <label for="f_address">Address</label>
+              <textarea id="f_address" rows="2"></textarea>
+            </div>
+            <div class="field">
+              <label for="f_howKnow">How Did They Know Us?</label>
+              <select id="f_howKnow"><option value="">Select...</option></select>
+            </div>
+            <div class="field">
+              <label for="f_patientId">Patient ID <span class="field-hint-inline">(manual, optional)</span></label>
+              <input id="f_patientId" type="text" placeholder="Your own internal ID, if any">
+            </div>
+            <div class="field">
+              <label for="f_invoiceNumber">Invoice Number <span class="field-hint-inline">(fill later via Find/Edit)</span></label>
+              <input id="f_invoiceNumber" type="text" placeholder="Leave blank for now">
+            </div>
+            <div class="field">
+              <label for="f_issueType">Issue Type <span class="req">*</span></label>
+              <div class="issue-select-row">
+                <select id="f_issueType"><option value="">Select issue...</option></select>
+                <button id="addIssueBtn" type="button" class="btn btn-outline btn-sm">+ New</button>
               </div>
             </div>
           </div>
+          <div id="patientMatchHint" class="field-hint"></div>
+        </div>
 
-          <div class="panel">
-            <h3>Services / Treatments</h3>
-            <div id="productRows"></div>
-            <div class="add-product-bar">
-              <button id="addRowBtn" class="btn btn-outline btn-sm">+ Add Service/Treatment  Row</button>
-              <button id="newProductBtn" class="btn btn-outline btn-sm">+ Add New Service/Treatment to List</button>
+        <!-- CHIEF COMPLAINT / HPI -->
+        <div class="panel">
+          <h3>Chief Complaint &amp; History</h3>
+          <div class="form-grid">
+            <div class="field span-2">
+              <label for="f_chiefComplaint">Chief Complaint</label>
+              <textarea id="f_chiefComplaint" rows="2"></textarea>
             </div>
-            <div class="totals-strip">
-              <div class="t-item">
-                <div class="t-label">Total Qty</div>
-                <div class="t-value" id="totalQty">0</div>
-              </div>
-              <div class="t-item">
-                <div class="t-label">Total Amount</div>
-                <div class="t-value" id="totalAmount">&#8377;0.00</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="panel">
-            <h3>Confirm &amp; Save (Biller Authorization Required)</h3>
-            <div class="biller-box">
-              <div id="billerAuthFields" style="display:contents;">
-                <div class="field" style="margin:0;">
-                  <label>Biller ID</label>
-                  <select id="f_billerId"><option value="">Select biller...</option></select>
-                </div>
-                <div class="field" style="margin:0;">
-                  <label>Biller Password</label>
-                  <input id="f_billerPassword" type="password" placeholder="Password">
-                </div>
-              </div>
-              <div class="field" id="billerLockedField" style="margin:0; display:none;">
-                <label>Billed By</label>
-                <input type="text" id="billerLockedText" disabled>
-              </div>
-              <button id="saveBillBtn" class="btn btn-primary">Save &amp; Generate Bill</button>
-            </div>
-            <div id="billerStatus" class="biller-status"></div>
-
-            <div id="cashNote" class="payment-note cash">
-              &#128181; <b>Cash in Hand</b> selected.
-            </div>
-            <div id="bankNote" class="payment-note cash">
-              &#127974; <b>Bank Transaction</b> selected.
+            <div class="field span-2">
+              <label for="f_hpi">History of Present Illness</label>
+              <textarea id="f_hpi" rows="3"></textarea>
             </div>
           </div>
         </div>
 
-        <!-- RIGHT: LIVE BILL PREVIEW -->
-        <div class="preview-wrap">
-          <div class="preview-actions">
-            <div class="badges">
-              <span class="badge" id="statusBadge" style="display:none;"></span>
-            </div>
-            <span class="field-hint">Download, print, email &amp; WhatsApp options appear after you save the bill.</span>
+        <!-- OBSERVATION & PAIN -->
+        <div class="panel">
+          <h3>Observation &amp; Pain Assessment</h3>
+          <div class="form-grid">
+            <div class="field"><label for="f_posture">Posture</label><input id="f_posture" type="text"></div>
+            <div class="field"><label for="f_obsGait">Gait</label><input id="f_obsGait" type="text"></div>
+            <div class="field"><label for="f_deformitySwelling">Deformity / Swelling</label><input id="f_deformitySwelling" type="text"></div>
           </div>
-          <div class="bill-scale-outer" id="billScaleOuter">
-            <div class="bill-paper bill-scale-inner" id="billPaper">
-              <div class="bill-empty-hint">Fill in the details on the left to see the live bill preview here.</div>
+          <div class="vas-wrap">
+            <label for="f_vas">Pain Assessment (VAS)</label>
+            <input id="f_vas" type="range" min="0" max="10" step="1" value="0">
+            <div class="vas-scale" id="vasScaleDisplay"></div>
+          </div>
+          <div class="form-grid" style="margin-top:10px;">
+            <div class="field"><label for="f_natureOfPain">Nature of Pain</label><input id="f_natureOfPain" type="text"></div>
+            <div class="field"><label for="f_aggravatingFactors">Aggravating Factors</label><input id="f_aggravatingFactors" type="text"></div>
+            <div class="field"><label for="f_relievingFactors">Relieving Factors</label><input id="f_relievingFactors" type="text"></div>
+          </div>
+        </div>
+
+        <!-- PAST MEDICAL HISTORY -->
+        <div class="panel">
+          <h3>Past Medical History</h3>
+          <div class="pmh-checks">
+            <label class="pmh-check"><input type="checkbox" id="f_pmhDM"> DM</label>
+            <label class="pmh-check"><input type="checkbox" id="f_pmhHTN"> HTN</label>
+            <label class="pmh-check"><input type="checkbox" id="f_pmhThyroid"> Thyroid</label>
+            <label class="pmh-check"><input type="checkbox" id="f_pmhCardiac"> Cardiac</label>
+          </div>
+          <div class="field">
+            <label for="f_surgeryFractureHospitalization">Surgery / Fracture / Hospitalization (Specify)</label>
+            <input id="f_surgeryFractureHospitalization" type="text">
+          </div>
+        </div>
+
+        <!-- ROM -->
+        <div class="panel">
+          <h3>Range of Motion (ROM)</h3>
+          <div class="table-scroll"><table class="rom-edit-table" id="romTable"></table></div>
+        </div>
+
+        <!-- MMT -->
+        <div class="panel">
+          <h3>Muscle Strength (MMT)</h3>
+          <div class="table-scroll"><table class="rom-edit-table" id="mmtTable"></table></div>
+        </div>
+
+        <!-- BODY DIAGRAM -->
+        <div class="panel">
+          <h3>Mark Pain Point &amp; Radiating Pain</h3>
+          <p class="field-hint">Pick a marker color below, then tap anywhere on a diagram to drop a point. Tap right on a point to remove it, or use Undo Last Point. Only the coordinates and colors are stored, and redrawn identically every time.</p>
+          <div class="mark-toolbar">
+            <button type="button" class="mark-tool active" data-color="#d1352f" data-type="pain"><span class="mt-dot" style="background:#d1352f"></span>Pain Point</button>
+            <button type="button" class="mark-tool" data-color="#2778b7" data-type="radiating"><span class="mt-dot" style="background:#2778b7"></span>Radiating Point</button>
+            <span class="mark-tool-custom">
+              <input type="color" id="markCustomColor" value="#a8d339" aria-label="Custom marker color">
+              <button type="button" class="mark-tool" id="markCustomBtn" data-color="#a8d339" data-type="custom">Custom</button>
+            </span>
+            <button type="button" class="btn btn-outline btn-sm" id="undoMarkBtn">&#8630; Undo Last Point</button>
+            <button type="button" class="btn btn-outline btn-sm" id="clearMarksBtn">Clear All Points</button>
+          </div>
+          <div class="body-diagrams" id="bodyDiagramsWrap"></div>
+        </div>
+
+        <!-- SPECIAL TESTS -->
+        <div class="panel">
+          <h3>Special Tests</h3>
+          <div id="specialTestsRows"></div>
+          <button type="button" id="addSpecialTestBtn" class="btn btn-outline btn-sm">+ Add Test</button>
+        </div>
+
+        <!-- FUNCTIONAL ASSESSMENT -->
+        <div class="panel">
+          <h3>Functional Assessment</h3>
+          <div class="form-grid">
+            <div class="field">
+              <label for="f_ambulation">Ambulation</label>
+              <select id="f_ambulation"><option value="">Select...</option><option>Independent</option><option>Assisted</option></select>
+            </div>
+            <div class="field">
+              <label for="f_stairClimbing">Stair Climbing</label>
+              <select id="f_stairClimbing"><option value="">Select...</option><option>Independent</option><option>Assisted</option></select>
+            </div>
+            <div class="field">
+              <label for="f_adls">ADLs</label>
+              <select id="f_adls"><option value="">Select...</option><option>Independent</option><option>Assisted</option></select>
             </div>
           </div>
-          <!-- Frozen copy of the bill exactly as it looked the moment it was
-               saved. Print/Save-as-PDF (from the Share popup) always print
-               THIS, never the live form above - so if the form has already
-               reset to a blank new bill by the time someone clicks Print,
-               what comes out is still the bill they actually saved. Kept
-               off-screen (not display:none, so print CSS can still target
-               it) until data-print-target on <body> selects it. -->
-          <div class="bill-paper" id="printSnapshot" aria-hidden="true"></div>
+        </div>
+
+        <!-- BALANCE / GAIT -->
+        <div class="panel">
+          <h3>Balance</h3>
+          <div class="form-grid">
+            <div class="field"><label for="f_balanceSingleLegStance">Single Leg Stance</label><input id="f_balanceSingleLegStance" type="text"></div>
+            <div class="field"><label for="f_balanceRombergTest">Romberg Test</label><input id="f_balanceRombergTest" type="text"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Gait</h3>
+          <div class="form-grid">
+            <div class="field"><label for="f_gaitPattern">Pattern</label><input id="f_gaitPattern" type="text"></div>
+            <div class="field"><label for="f_gaitCadence">Cadence</label><input id="f_gaitCadence" type="text"></div>
+            <div class="field"><label for="f_gaitLimping">Limping</label><input id="f_gaitLimping" type="text"></div>
+          </div>
+        </div>
+
+        <!-- CLINICAL DIAGNOSIS / GOALS / PLAN -->
+        <div class="panel">
+          <h3>Clinical Diagnosis</h3>
+          <div class="field"><textarea id="f_clinicalDiagnosis" rows="2" aria-label="Clinical diagnosis"></textarea></div>
+        </div>
+        <div class="panel">
+          <div class="two-col">
+            <div>
+              <h3>Treatment Goals</h3>
+              <div id="goalsRows"></div>
+              <button type="button" id="addGoalBtn" class="btn btn-outline btn-sm">+ Add Goal</button>
+            </div>
+            <div>
+              <h3>Treatment Plan</h3>
+              <div id="planRows"></div>
+              <button type="button" id="addPlanBtn" class="btn btn-outline btn-sm">+ Add Plan Item</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- FOLLOW UP -->
+        <div class="panel">
+          <h3>Follow Up / Notes</h3>
+          <div class="field"><textarea id="f_followUpNotes" rows="4" aria-label="Follow up notes"></textarea></div>
+          <div class="field" style="max-width:260px;"><label for="f_nextReviewDate">Next Review Date</label><input id="f_nextReviewDate" type="date"></div>
+        </div>
+
+        <!-- PHYSIOTHERAPIST SIGNATURE -->
+        <div class="panel">
+          <h3>Physiotherapist Signature</h3>
+          <p class="field-hint" id="formSignatureHint">Pulled in automatically from the selected physiotherapist's own login - uploaded once from Admin Settings &rarr; My Login, never drawn or typed here.</p>
+          <div class="sig-preview-row">
+            <div class="sig-preview-box">
+              <img id="formSignaturePreview" class="sig-preview-img" style="display:none;" alt="Signature">
+              <span id="formSignatureEmpty" class="sig-preview-empty">No physiotherapist selected yet</span>
+            </div>
+            <div id="formSignatureCaption" class="sig-preview-caption"></div>
+          </div>
+        </div>
+
+        <!-- SIGN & SAVE (create) / CONFIRM & SAVE CHANGES (edit) -->
+        <div class="panel gate-panel" id="signSavePanel">
+          <h3 id="signSaveTitle">Confirm &amp; Save (Physiotherapist Authorization Required)</h3>
+
+          <!-- Edit mode only: mandatory reason, stored with the record's edit history -->
+          <div class="field edit-only edit-reason-field" id="editReasonField">
+            <label for="f_editReason">Reason for Edit <span class="req">*</span></label>
+            <textarea id="f_editReason" rows="2" maxlength="500" placeholder="e.g. Added invoice number after billing / Corrected ROM values / Patient's phone number was wrong"></textarea>
+            <div class="field-row-between">
+              <div class="field-error">A Reason for Edit is required before changes can be saved (at least 3 characters)</div>
+              <span class="char-count" id="editReasonCount">0 / 500</span>
+            </div>
+          </div>
+
+          <div class="biller-box">
+            <div id="physioAuthFields" style="display:contents;">
+              <div class="field" style="margin:0;">
+                <label for="f_physioId" id="f_physioIdLabel">Physiotherapist</label>
+                <select id="f_physioId"><option value="">Select physiotherapist...</option></select>
+                <div class="field-error">Choose who is authorizing</div>
+              </div>
+              <div class="field" style="margin:0;">
+                <label for="f_physioPassword" id="f_physioPasswordLabel">Password</label>
+                <input id="f_physioPassword" type="password" placeholder="Password" autocomplete="new-password">
+                <div class="field-error">Password is required</div>
+              </div>
+            </div>
+            <div class="field" id="physioLockedField" style="margin:0; display:none;">
+              <label for="physioLockedText">Assessed By</label>
+              <input type="text" id="physioLockedText" disabled>
+            </div>
+            <div class="field" id="physioSignPasswordField" style="margin:0; display:none;">
+              <label for="f_physioOwnPassword" id="f_physioOwnPasswordLabel">Confirm Your Password to Sign</label>
+              <input type="password" id="f_physioOwnPassword" placeholder="Your password" autocomplete="new-password">
+              <div class="field-error">Password is required</div>
+            </div>
+            <div class="gate-actions">
+              <button id="cancelEditInlineBtn" type="button" class="btn btn-outline edit-only">Cancel</button>
+              <button id="saveAssessmentBtn" type="button" class="btn btn-primary">Save &amp; Generate Record</button>
+            </div>
+          </div>
+          <div id="physioStatus" class="biller-status" role="status"></div>
+        </div>
+      </div>
+      </div>
+
+    </section>
+
+    <!-- ===================== EDIT RECORD VIEW (lives under Find / Edit) ===================== -->
+    <section id="view-edit" class="view">
+      <div class="view-header">
+        <div>
+          <h2 id="editHeading">Edit Record</h2>
+          <p id="editSub">&nbsp;</p>
+        </div>
+        <button id="cancelEditBtn" class="btn btn-outline btn-sm">&#10005; Cancel Edit</button>
+      </div>
+      <div class="edit-banner">
+        <span class="edit-banner-ic">&#9998;</span>
+        <span>You are editing an existing record. Nothing is changed until you press <b>Save Changes</b> - a <b>Reason for Edit</b> is required and is kept in the record's edit history.</span>
+      </div>
+      <div id="editFormHost"></div>
+      <div class="edit-savebar" id="editSaveBar">
+        <span class="edit-savebar-text" id="editSaveBarText">No changes yet</span>
+        <div class="edit-savebar-actions">
+          <button type="button" class="btn btn-outline btn-sm" id="editSaveBarCancelBtn">Cancel</button>
+          <button type="button" class="btn btn-primary btn-sm" id="editSaveBarSaveBtn">&#128190; Save Changes</button>
         </div>
       </div>
     </section>
 
-    <!-- ===================== INVENTORY VIEW ===================== -->
-    <section id="view-inventory" class="view">
+    <!-- ===================== RECORD PREVIEW (after save / from Find-Edit) ===================== -->
+    <section id="view-record-preview" class="view record-preview-section">
       <div class="view-header">
         <div>
-          <h2>Live Inventory</h2>
-          <p>Here is your each product's stock count for your analysis.</p>
+          <h2 id="recordPreviewHeading">Record</h2>
+          <p id="recordPreviewSub">&nbsp;</p>
         </div>
-        <button id="refreshInventoryBtn" class="btn btn-outline btn-sm">&#128260; Refresh</button>
+        <button id="closePreviewBtn" class="btn btn-outline btn-sm">&#10005; Close</button>
       </div>
+      <div id="recordPreviewWrap">
+        <div class="preview-actions">
+          <div class="badges"><span class="badge badge-ok" id="previewSavedBadge">&#10003; Saved</span></div>
+          <div class="preview-actions-buttons">
+            <button id="editRecordBtn" class="btn btn-outline btn-sm">&#9998; Edit This Record</button>
+            <button id="shareRecordBtn" class="btn btn-primary btn-sm">&#128257; Share / Print / PDF</button>
+          </div>
+        </div>
+        <div id="recordEditInfo" class="record-edit-info" hidden></div>
+        <div class="doc-scale-outer">
+          <div class="doc-paper doc-scale-inner" id="docPaper"></div>
+        </div>
+      </div>
+    </section>
 
-      <div class="inv-kpi-grid">
-        <div class="dash-card kpi-card c-teal">
-          <div class="dash-card-main">
-            <div class="icon">&#128230;</div>
-            <div class="label">Tracked Products</div>
-            <div class="value" id="invTrackedCount">0</div>
-          </div>
-        </div>
-        <div class="dash-card kpi-card c-gold">
-          <div class="dash-card-main">
-            <div class="icon">&#9888;&#65039;</div>
-            <div class="label">Low Stock</div>
-            <div class="value" id="invLowCount">0</div>
-          </div>
-        </div>
-        <div class="dash-card kpi-card c-violet">
-          <div class="dash-card-main">
-            <div class="icon">&#9940;</div>
-            <div class="label">Out of Stock</div>
-            <div class="value" id="invOutCount">0</div>
-          </div>
+    <!-- ===================== LOOKUP / EDIT VIEW ===================== -->
+    <section id="view-lookup" class="view">
+      <div class="view-header">
+        <div>
+          <h2>Find / Edit Record</h2>
+          <p>Search by Visit ID, Patient ID, Patient Visit ID, phone, name or invoice number. Open a record, then use "Edit This Record" to change it.</p>
         </div>
       </div>
-
-      <div class="panel" id="invAdminAuthPanel" style="display:none;">
-        <h3>Confirm Identity to Update Stock</h3>
-        <div class="field-hint" style="margin-bottom:12px;">
-          As Super Admin, re-enter your credentials here before saving any stock change - the same
-          protection used everywhere else in Admin Settings.
-        </div>
-        <div class="form-grid">
-          <div class="field">
-            <label>Super Admin Username</label>
-            <input id="inv_su_user" type="text">
-          </div>
-          <div class="field">
-            <label>Super Admin Password</label>
-            <input id="inv_su_pass" type="password">
-          </div>
-        </div>
+      <div class="lookup-search">
+        <input id="lookupQuery" type="search" enterkeyhint="search" placeholder="Search Visit ID, Patient ID, phone or name..." autocomplete="off">
+        <button id="lookupBtn" class="btn btn-primary">Search</button>
       </div>
-
-      <div class="panel">
-        <div class="inv-toolbar">
-          <input id="invSearch" type="text" placeholder="Search product...">
-        </div>
-        <div class="table-scroll">
-          <table class="biller-table inv-table">
-            <thead>
-              <tr>
-                <th>Service / Treatment </th>
-                <th>Current Stock</th>
-                <th>Low Stock Alert</th>
-                <th>Status</th>
-                <th id="invActionsHeader" style="display:none;">Update Stock</th>
-              </tr>
-            </thead>
-            <tbody id="inventoryTableBody"></tbody>
-          </table>
-        </div>
-        <div id="invEmptyHint" class="field-hint" style="display:none; margin-top:10px;">No products match your search.</div>
-      </div>
-
-      <div class="panel" id="invLogPanel">
-        <h3>Recent Stock Activity</h3>
-        <div id="inventoryLog"></div>
-      </div>
+      <div id="lookupResults" class="lookup-results"></div>
     </section>
 
     <!-- ===================== REPORTS VIEW ===================== -->
@@ -346,7 +459,7 @@
       <div class="view-header">
         <div>
           <h2>Reports</h2>
-          <p>Live, filterable views of your data. Everyone can browse every report, but no one can edit. This is for analysis purpose alone.</p>
+          <p>Live, filterable views of your data. Everyone can browse every report, but no one can edit here.</p>
         </div>
         <button id="refreshReportBtn" class="btn btn-outline btn-sm">&#128260; Refresh</button>
       </div>
@@ -354,7 +467,6 @@
       <div class="admin-tabs" id="reportTabs">
         <button class="admin-tab report-tab active" data-report="universal">Universal Report</button>
         <button class="admin-tab report-tab" data-report="daily">Daily Report</button>
-        <button class="admin-tab report-tab" data-report="inventoryLog">Inventory Log Report</button>
       </div>
 
       <div class="panel">
@@ -375,7 +487,6 @@
             <button id="reportDownloadBtn" class="btn btn-primary btn-sm" style="display:none;">&#11015;&#65039; Download Excel</button>
           </div>
         </div>
-
         <div class="report-table-scroll">
           <table class="biller-table report-table" id="reportTable">
             <thead>
@@ -383,15 +494,10 @@
               <tr id="reportFilterRow" class="report-filter-row"></tr>
             </thead>
             <tbody id="reportTableBody"></tbody>
-            <tfoot>
-              <tr id="reportTotalsRow" class="report-totals-row"></tr>
-            </tfoot>
           </table>
         </div>
         <div id="reportLoadingHint" class="field-hint" style="margin-top:10px;">Loading report…</div>
         <div id="reportEmptyHint" class="field-hint" style="display:none; margin-top:10px;">No rows match your filters.</div>
-        <div id="reportSourceCapHint" class="field-hint" style="display:none; margin-top:6px;"></div>
-        <div id="reportRenderCapHint" class="field-hint" style="display:none; margin-top:6px;"></div>
       </div>
     </section>
 
@@ -399,157 +505,114 @@
     <section id="view-dashboard" class="view">
       <div class="view-header">
         <div>
-          <h2>Revenue Dashboard</h2>
-          <p>Here is your clinic's visual analysis spot to analyze values about patients, treatments, bills and billers... etc. </p>
+          <h2>Clinic Dashboard</h2>
+          <p>Visual analysis of visits, patients, issue types and referral sources. Each card below has its own independent filters.</p>
         </div>
         <button id="refreshDashboardBtn" class="btn btn-outline btn-sm">&#128260; Refresh All</button>
       </div>
 
-      <div class="dash-grid">
-
-        <!-- Total Sales (Bills) -->
-        <div class="dash-card kpi-card c-teal" data-widget="sc">
+      <div class="dash-grid" id="dashDefaultGrid">
+        <div class="dash-card kpi-card c-teal dash-card-filterable" data-widget="totalVisits">
           <div class="dash-card-main">
-            <div class="icon">&#128196;</div>
-            <div class="label">Total Invoices</div>
-            <div class="value" id="kpiSalesCount">0</div>
+            <div class="icon">&#128197;</div>
+            <div class="label">Total Visits</div>
+            <div class="value" id="kpiTotalVisits">0</div>
           </div>
-          <div class="chart-filter" data-key="sc"></div>
+          <div class="dash-card-filters" data-widget-filters="totalVisits"></div>
         </div>
-
-        <!-- Total Sales (Amount) -->
-        <div class="dash-card kpi-card c-gold" data-widget="sa">
-          <div class="dash-card-main">
-            <div class="icon">&#8377;</div>
-            <div class="label">Total Revenue</div>
-            <div class="value accent" id="kpiSalesAmount">&#8377;0</div>
-          </div>
-          <div class="chart-filter" data-key="sa"></div>
-        </div>
-
-        <!-- Total Products Sold -->
-        <div class="dash-card kpi-card c-green" data-widget="qs">
-          <div class="dash-card-main">
-            <div class="icon">&#128230;</div>
-            <div class="label">Total Treatments Provided</div>
-            <div class="value" id="kpiQtySold">0</div>
-          </div>
-          <div class="chart-filter" data-key="qs"></div>
-        </div>
-
-        <!-- Unique Patients -->
-        <div class="dash-card kpi-card c-violet" data-widget="uc">
+        <div class="dash-card kpi-card c-violet dash-card-filterable" data-widget="totalPatients">
           <div class="dash-card-main">
             <div class="icon">&#128101;</div>
-            <div class="label">Total Patients</div>
-            <div class="value" id="kpiCustomers">0</div>
+            <div class="label">Unique Patients</div>
+            <div class="value" id="kpiTotalPatients">0</div>
           </div>
-          <div class="chart-filter" data-key="uc"></div>
+          <div class="dash-card-filters" data-widget-filters="totalPatients"></div>
         </div>
-
-        <!-- Product-wise Quantity Sold -->
-        <div class="dash-card chart-card wide" data-widget="pc">
+        <div class="dash-card chart-card wide dash-card-filterable" data-widget="issueBar">
           <div class="dash-card-main">
-            <h4>Treatment-wise Revenue</h4>
-            <div id="productBarChart"></div>
+            <h4>Visits by Issue Type</h4>
+            <div id="issueBarChart" class="chart-scroll"></div>
           </div>
-          <div class="chart-filter" data-key="pc"></div>
+          <div class="dash-card-filters" data-widget-filters="issueBar"></div>
         </div>
-
-        <!-- Bills by Biller -->
-        <div class="dash-card chart-card wide" data-widget="bb">
+        <div class="dash-card chart-card wide dash-card-filterable" data-widget="howKnowDonut">
           <div class="dash-card-main">
-            <h4>Bills by Biller</h4>
-            <div id="billerDonutChart"></div>
+            <h4>How Patients Heard About Us</h4>
+            <div id="howKnowDonutChart"></div>
           </div>
-          <div class="chart-filter" data-key="bb"></div>
+          <div class="dash-card-filters" data-widget-filters="howKnowDonut"></div>
         </div>
-
-        <!-- Cash vs Bank (Amount Received) -->
-        <div class="dash-card chart-card wide" data-widget="pm">
+        <div class="dash-card chart-card wide dash-card-filterable" data-widget="physioDonut">
           <div class="dash-card-main">
-            <h4>Cash vs Bank (Amount Received)</h4>
-            <div id="paymentPieChart"></div>
+            <h4>Visits by Physiotherapist</h4>
+            <div id="physioDonutChart"></div>
           </div>
-          <div class="chart-filter" data-key="pm"></div>
+          <div class="dash-card-filters" data-widget-filters="physioDonut"></div>
         </div>
-
       </div>
 
-      <!-- ===================== CUSTOM CHARTS ===================== -->
       <div class="view-header" style="margin-top:28px;">
         <div>
           <h2 style="font-size:18px;">Custom Charts</h2>
-          <p>Build your own charts on top of the defaults above. Visible to everyone; only Super Admin can add, edit, delete or reorder them.</p>
+          <p>Super Admin can build extra charts on top of the defaults above. Visible to everyone; only Super Admin can add, edit or delete them.</p>
         </div>
         <button id="addCustomChartBtn" class="btn btn-primary btn-sm" style="display:none;">+ New Chart</button>
       </div>
       <div id="customChartsGrid" class="dash-grid"></div>
-      <p id="customChartsEmptyHint" class="field-hint" style="display:none;">No custom charts yet - Super Admin can add one above.</p>
+      <p id="customChartsEmptyHint" class="field-hint" style="display:none;">No custom charts yet.</p>
     </section>
 
-    <!-- ===================== CUSTOM CHART BUILDER MODAL ===================== -->
+    <!-- CUSTOM CHART BUILDER MODAL -->
     <div id="chartBuilderModal" class="modal-overlay">
-      <div class="modal-box">
+      <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="chartBuilderTitle">
         <h3 id="chartBuilderTitle">New Chart</h3>
         <input type="hidden" id="cb_chartId">
         <div class="form-grid">
           <div class="field span-2">
-            <label>Chart Name</label>
-            <input id="cb_name" type="text" placeholder="e.g. Top 10 Products Sold">
+            <label for="cb_name">Chart Name</label>
+            <input id="cb_name" type="text" placeholder="e.g. Top Issues This Month">
           </div>
           <div class="field span-2">
-            <label>Data Source</label>
+            <label for="cb_dataSource">Data Source</label>
             <select id="cb_dataSource">
-              <option value="bills">Bills (whole-invoice info: biller, payment, patient, date, amount)</option>
-              <option value="billitems">Bill Items (individual products sold, with quantity &amp; line amount)</option>
-              <option value="customers">Patients (just a running total - see tip below)</option>
-              <option value="products">Products (just a running total - see tip below)</option>
+              <option value="visits">Visits (any assessment field)</option>
+              <option value="patients">Patients (running total)</option>
+              <option value="issues">Issues (running total)</option>
             </select>
             <div id="cb_dataSourceHint" class="field-hint" style="margin-top:6px;"></div>
           </div>
           <div class="field" id="cb_dimensionField">
-            <label>Group By</label>
+            <label for="cb_dimension">Group By</label>
             <select id="cb_dimension"></select>
           </div>
           <div class="field">
-            <label>Measure</label>
+            <label for="cb_metric">Measure</label>
             <select id="cb_metric">
+              <option value="count">Count (how many records)</option>
               <option value="sum">Sum (add up a number field)</option>
               <option value="average">Average (mean of a number field)</option>
-              <option value="count">Count (how many records)</option>
             </select>
           </div>
           <div class="field" id="cb_metricFieldWrap">
-            <label>Number Field</label>
-            <select id="cb_metricField"></select>
+            <label for="cb_metricField">Number Field</label>
+            <select id="cb_metricField"><option value="VAS">VAS (Pain Score)</option><option value="Age">Age</option></select>
           </div>
           <div class="field">
-            <label>Chart Type</label>
+            <label for="cb_type">Chart Type</label>
             <select id="cb_type">
               <option value="bar">Bar Chart</option>
               <option value="pie">Pie Chart</option>
               <option value="donut">Donut Chart</option>
-              <option value="number">Number Card (single big number, no grouping)</option>
+              <option value="number">Number Card</option>
             </select>
           </div>
-          <div class="field" id="cb_topNField">
-            <label>Show Top</label>
-            <input id="cb_topN" type="number" min="0" placeholder="0 = show all">
-          </div>
+          <div class="field" id="cb_topNField"><label for="cb_topN">Show Top</label><input id="cb_topN" type="number" min="0" placeholder="0 = show all"></div>
           <div class="field" id="cb_sortDirField">
-            <label>Order</label>
-            <select id="cb_sortDir">
-              <option value="desc">Highest first</option>
-              <option value="asc">Lowest first</option>
-            </select>
+            <label for="cb_sortDir">Order</label>
+            <select id="cb_sortDir"><option value="desc">Highest first</option><option value="asc">Lowest first</option></select>
           </div>
-          <div class="field" id="cb_colorField">
-            <label>Number Color</label>
-            <input id="cb_color" type="color" value="#E1341E">
-          </div>
+          <div class="field" id="cb_colorField"><label for="cb_color">Color</label><input id="cb_color" type="color" value="#0f6e5c"></div>
         </div>
-        <div id="cb_description" style="background:var(--primary-soft);border-radius:var(--radius-sm);padding:10px 14px;font-size:12.5px;color:var(--ink);line-height:1.5;margin-top:6px;"></div>
         <div id="chartBuilderStatus" class="biller-status"></div>
         <div class="modal-actions">
           <button class="btn btn-outline btn-sm" id="cb_cancel">Cancel</button>
@@ -558,461 +621,341 @@
       </div>
     </div>
 
-    <!-- ===================== LOOKUP / EDIT VIEW ===================== -->
-    <section id="view-lookup" class="view">
-      <div class="view-header">
-        <div>
-          <h2>Find / Edit Bill</h2>
-          <p>Search by Bill ID to view full details. Editing requires Super Admin login.</p>
-        </div>
-      </div>
-
-      <div class="lookup-search">
-        <input id="lookupBillId" type="text" autocomplete="off" placeholder="Bill ID - e.g. SJP-000012, or just 12">
-        <button id="lookupBtn" class="btn btn-primary">Search</button>
-      </div>
-
-      <div id="lookupResult"></div>
-    </section>
-
-    <!-- ===================== LETTERPAD VIEW =====================
-         Fully self-contained, print-only feature. It NEVER calls the API and
-         NEVER touches the database - the only thing it shares with the rest
-         of the app is the per-biller CanAccessLetterpad permission toggle.
-         The sheet below is a real A4 page (210mm x 297mm), deliberately NOT
-         responsive, so what is on screen is exactly what comes out of the
-         printer / PDF.
-         ========================================================== -->
-    <section id="view-letterpad" class="view">
-      <div class="view-header">
-        <div>
-          <h2>Letterpad</h2>
-          <p>Use this official template to draft formal correspondence and print the document directly or export it as a PDF for hard-copy delivery. </p>
-        </div>
-      </div>
-
-      <div class="lp-warning-strip">
-        <span class="lp-warning-icon">&#9888;&#65039;</span>
-        <span>Nothing on this page is saved - not to the database, not to this browser. If you leave this screen, log out or reload, whatever you typed is gone. <b>Print it or save it as a PDF before you leave.</b></span>
-      </div>
-
-      <!-- ============ TOOLBAR ============ -->
-      <div class="lp-toolbar" id="lpToolbar">
-
-        <!-- Row 1 : text -->
-        <div class="lp-tb-row">
-          <div class="lp-tb-group">
-            <select id="lpBlockStyle" class="lp-tb-select" title="Paragraph style" style="min-width:104px;">
-              <option value="p">Normal text</option>
-              <option value="h1">Heading 1</option>
-              <option value="h2">Heading 2</option>
-              <option value="h3">Heading 3</option>
-              <option value="h4">Heading 4</option>
-              <option value="blockquote">Quote</option>
-              <option value="pre">Monospace</option>
-            </select>
-            <select id="lpFontFamily" class="lp-tb-select" title="Font style" style="min-width:132px;">
-              <option value="Georgia, 'Times New Roman', Times, serif">Georgia</option>
-              <option value="'Times New Roman', Times, serif">Times New Roman</option>
-              <option value="Cambria, Georgia, serif">Cambria</option>
-              <option value="Garamond, Georgia, serif">Garamond</option>
-              <option value="Arial, Helvetica, sans-serif">Arial</option>
-              <option value="Calibri, 'Segoe UI', Arial, sans-serif">Calibri</option>
-              <option value="'Segoe UI', Roboto, Arial, sans-serif">Segoe UI</option>
-              <option value="Verdana, Geneva, sans-serif">Verdana</option>
-              <option value="Tahoma, Geneva, sans-serif">Tahoma</option>
-              <option value="'Trebuchet MS', Arial, sans-serif">Trebuchet MS</option>
-              <option value="'Courier New', Courier, monospace">Courier New</option>
-              <option value="'Consolas', 'Courier New', monospace">Consolas</option>
-            </select>
-            <select id="lpFontSize" class="lp-tb-select" title="Font size (pt)" style="min-width:66px;">
-              <option value="8">8</option><option value="9">9</option><option value="10">10</option>
-              <option value="11">11</option><option value="12" selected>12</option><option value="14">14</option>
-              <option value="16">16</option><option value="18">18</option><option value="20">20</option>
-              <option value="24">24</option><option value="28">28</option><option value="32">32</option>
-              <option value="36">36</option><option value="48">48</option><option value="72">72</option>
-            </select>
-          </div>
-
-          <div class="lp-tb-group">
-            <button type="button" class="lp-tb-btn" data-lpcmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
-            <button type="button" class="lp-tb-btn" data-lpcmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
-            <button type="button" class="lp-tb-btn" data-lpcmd="underline" title="Underline (Ctrl+U)"><u>U</u></button>
-            <button type="button" class="lp-tb-btn" data-lpcmd="strikeThrough" title="Strikethrough"><s>S</s></button>
-            <button type="button" class="lp-tb-btn" data-lpcmd="superscript" title="Superscript">x&sup2;</button>
-            <button type="button" class="lp-tb-btn" data-lpcmd="subscript" title="Subscript">x&#8322;</button>
-          </div>
-
-          <div class="lp-tb-group">
-            <label class="lp-tb-color" title="Text colour">
-              <span class="lp-tb-color-swatch" id="lpForeSwatch" style="background:#000000;">A</span>
-              <input type="color" id="lpForeColor" value="#000000">
-            </label>
-            <label class="lp-tb-color" title="Highlight colour">
-              <span class="lp-tb-color-swatch" id="lpBackSwatch" style="background:#ffe680;">&#9998;</span>
-              <input type="color" id="lpBackColor" value="#ffe680">
-            </label>
-            <button type="button" class="lp-tb-btn" id="lpClearHighlight" title="Remove highlight">&#9003;</button>
-          </div>
-        </div>
-
-        <!-- Row 2 : paragraph -->
-        <div class="lp-tb-row">
-          <div class="lp-tb-group">
-            <button type="button" class="lp-tb-btn" data-lpcmd="justifyLeft" title="Align left">&#8801;<span class="lp-al lp-al-l"></span></button>
-            <button type="button" class="lp-tb-btn" data-lpcmd="justifyCenter" title="Align centre"><span class="lp-al lp-al-c"></span></button>
-            <button type="button" class="lp-tb-btn" data-lpcmd="justifyRight" title="Align right"><span class="lp-al lp-al-r"></span></button>
-            <button type="button" class="lp-tb-btn" data-lpcmd="justifyFull" title="Justify"><span class="lp-al lp-al-j"></span></button>
-          </div>
-
-          <div class="lp-tb-group">
-            <button type="button" class="lp-tb-btn" data-lpcmd="insertUnorderedList" title="Bullet list">&#8226; &#8801;</button>
-            <button type="button" class="lp-tb-btn" data-lpcmd="insertOrderedList" title="Numbered list">1. &#8801;</button>
-            <button type="button" class="lp-tb-btn" data-lpcmd="outdent" title="Decrease indent">&#8676;</button>
-            <button type="button" class="lp-tb-btn" data-lpcmd="indent" title="Increase indent">&#8677;</button>
-          </div>
-
-          <div class="lp-tb-group">
-            <select id="lpLineHeight" class="lp-tb-select" title="Line spacing" style="min-width:96px;">
-              <option value="">Spacing</option>
-              <option value="1">Single</option>
-              <option value="1.15">1.15</option>
-              <option value="1.5">1.5</option>
-              <option value="1.75">1.75</option>
-              <option value="2">Double</option>
-              <option value="2.5">2.5</option>
-            </select>
-            <select id="lpSpaceAfter" class="lp-tb-select" title="Space after paragraph" style="min-width:110px;">
-              <option value="">Para. space</option>
-              <option value="0">None</option>
-              <option value="4">4 px</option>
-              <option value="8">8 px</option>
-              <option value="12">12 px</option>
-              <option value="18">18 px</option>
-            </select>
-            <select id="lpChangeCase" class="lp-tb-select" title="Change case of the selected text" style="min-width:112px;">
-              <option value="">Change case</option>
-              <option value="upper">UPPERCASE</option>
-              <option value="lower">lowercase</option>
-              <option value="title">Title Case</option>
-              <option value="sentence">Sentence case</option>
-              <option value="toggle">tOGGLE cASE</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Row 3 : insert + document -->
-        <div class="lp-tb-row">
-          <div class="lp-tb-group">
-            <button type="button" class="lp-tb-btn lp-tb-wide" id="lpInsertHr" title="Insert horizontal line">&#9473; Line</button>
-            <button type="button" class="lp-tb-btn lp-tb-wide" id="lpInsertTable" title="Insert a table">&#9638; Table</button>
-            <button type="button" class="lp-tb-btn lp-tb-wide" id="lpInsertDate" title="Insert today's date">&#128197; Date</button>
-            <button type="button" class="lp-tb-btn lp-tb-wide" id="lpInsertSign" title="Insert a signature block">&#9997;&#65039; Sign</button>
-          </div>
-
-          <div class="lp-tb-group">
-            <button type="button" class="lp-tb-btn lp-tb-wide" data-lpcmd="removeFormat" title="Clear all formatting from the selection">&#10005; Clear format</button>
-            <button type="button" class="lp-tb-btn" data-lpcmd="undo" title="Undo (Ctrl+Z)">&#8630;</button>
-            <button type="button" class="lp-tb-btn" data-lpcmd="redo" title="Redo (Ctrl+Y)">&#8631;</button>
-          </div>
-
-          <div class="lp-tb-group">
-            <label class="lp-tb-inline-label" for="lpPastePlain">
-              <input type="checkbox" id="lpPastePlain"> Paste as plain text
-            </label>
-          </div>
-
-          <div class="lp-tb-group lp-tb-group-right">
-            <select id="lpZoom" class="lp-tb-select" title="Screen zoom only - does not change what gets printed">
-              <option value="0.5">50%</option>
-              <option value="0.75">75%</option>
-              <option value="0.9">90%</option>
-              <option value="1" selected>100% (actual size)</option>
-              <option value="1.25">125%</option>
-              <option value="1.5">150%</option>
-            </select>
-            <button type="button" class="btn btn-outline btn-sm" id="lpResetBtn">&#128465;&#65039; Reset</button>
-            <button type="button" class="btn btn-primary btn-sm" id="lpPrintBtn">&#128424;&#65039; Print / Save as PDF</button>
-          </div>
-        </div>
-
-        <div class="lp-tb-status">
-          <span id="lpPageCount">1 page</span>
-          <span class="lp-tb-status-dot">&bull;</span>
-          <span id="lpWordCount">0 words</span>
-          <span class="lp-tb-status-dot">&bull;</span>
-          <span>Sheet shown at true A4 size - 210 &times; 297 mm</span>
-        </div>
-      </div>
-
-      <!-- ============ THE A4 SHEET ============ -->
-      <div class="lp-stage" id="lpStage">
-        <div class="lp-zoom" id="lpZoomWrap">
-          <div class="lp-sheet" id="lpSheet">
-
-            <!-- Predefined header - not editable -->
-            <div class="lp-band lp-band-head" id="lpHeader" contenteditable="false">
-              <img class="lp-logo" src="https://sjphysiotherapy.in/LOGO/SJ-PHYSIOTHERAPY-EMAIL-LOGO.png" alt="SJ Physiotherapy">
-            </div>
-
-            <!-- The only editable region -->
-            <div class="lp-body-wrap" id="lpBodyWrap">
-              <div class="lp-body" id="lpBody" contenteditable="true" spellcheck="true"
-                   data-lp-placeholder="Start typing your letter here..."></div>
-              <div class="lp-guides" id="lpGuides" aria-hidden="true"></div>
-            </div>
-
-            <!-- Predefined footer - not editable. Social handles are printed as
-                 text next to each icon, because a hyperlink is useless on paper. -->
-            <div class="lp-band lp-band-foot" id="lpFooter" contenteditable="false">
-              <div class="lp-foot-addr">
-                <b>SJ Physiotherapy</b> &nbsp;No - 243, Ground floor, Analyangadu Extension Main Road, Singanallur, Coimbatore - 641005
-              </div>
-              <div class="lp-foot-title">Connect With Us</div>
-              <div class="lp-foot-grid">
-                <div class="lp-foot-item"><img src="https://sjphysiotherapy.in/SOCIAL%20MEDIA/PHONE-E.png" alt="Phone"><span>+91 96294 95946</span></div>
-                <div class="lp-foot-item"><img src="https://sjphysiotherapy.in/SOCIAL%20MEDIA/WA-E.png" alt="WhatsApp"><span>+91 96294 95946</span></div>
-                <div class="lp-foot-item"><img src="https://sjphysiotherapy.in/SOCIAL%20MEDIA/MAIL-E.png" alt="Email"><span>info.sjphysiotherapy@gmail.com</span></div>
-                <div class="lp-foot-item"><img src="https://sjphysiotherapy.in/SOCIAL%20MEDIA/INSTA-E.png" alt="Instagram"><span>sjphysiotherapy_</span></div>
-                <div class="lp-foot-item"><img src="https://sjphysiotherapy.in/SOCIAL%20MEDIA/FACEBOOK-E.png" alt="Facebook"><span>SJ Physiotherapy</span></div>
-                <div class="lp-foot-item"><img src="https://sjphysiotherapy.in/SOCIAL%20MEDIA/LINKEDIN-E.png" alt="LinkedIn"><span>sj-physiotherapy</span></div>
-                <div class="lp-foot-item"><img src="https://sjphysiotherapy.in/SOCIAL%20MEDIA/YOUTUBE-E.png" alt="YouTube"><span>@SJ-Physiotherapy</span></div>
-                <div class="lp-foot-item"><img src="https://sjphysiotherapy.in/LOGO/favicon.png" alt="Website"><span>sjphysiotherapy.in</span></div>
-              </div>
-              <div class="lp-foot-copy">&copy; 2026 SJ Physiotherapy. All Rights Reserved.</div>
-            </div>
-
-          </div>
-        </div>
-      </div>
-    </section>
-
     <!-- ===================== ADMIN SETTINGS VIEW ===================== -->
     <section id="view-admin" class="view">
       <div class="view-header">
         <div>
           <h2>Admin Settings</h2>
-          <p>Manage billers, products and shop details. Super Admin login required to save changes.</p>
+          <p>Manage physiotherapists, issue types and clinic details. Super Admin login required to save changes.</p>
         </div>
       </div>
 
       <div class="admin-tabs">
-        <button class="admin-tab active" data-tab="billers">Billers</button>
-        <button class="admin-tab" data-tab="shop">Shop Details</button>
-        <button class="admin-tab" data-tab="invoice">Invoice / Tax</button>
-        <button class="admin-tab" data-tab="products">Products</button>
+        <button class="admin-tab active" data-tab="physios">Physiotherapists</button>
+        <button class="admin-tab" data-tab="clinic">Clinic Details</button>
+        <button class="admin-tab" data-tab="issues">Issues List</button>
         <button class="admin-tab" data-tab="theme">Theme</button>
+        <button class="admin-tab" data-tab="database">Database</button>
         <button class="admin-tab" data-tab="account">My Login</button>
       </div>
 
       <div class="panel">
-        <div class="field-hint" style="margin-bottom:14px;">All changes below require Super Admin credentials.</div>
+        <div class="field-hint" style="margin-bottom:14px;">Most changes below require Super Admin credentials.</div>
         <div class="form-grid" style="margin-bottom:16px;">
           <div class="field">
-            <label>Super Admin Username</label>
-            <input id="admin_su_user" type="text">
+            <label for="admin_su_user">Super Admin Username</label>
+            <input id="admin_su_user" type="text" autocomplete="off" autocapitalize="off" spellcheck="false">
           </div>
           <div class="field">
-            <label>Super Admin Password</label>
-            <input id="admin_su_pass" type="password">
+            <label for="admin_su_pass">Super Admin Password</label>
+            <input id="admin_su_pass" type="password" autocomplete="new-password">
           </div>
         </div>
 
-        <!-- BILLERS TAB -->
-        <div id="tab-billers" class="admin-pane active">
-          <button id="addBillerBtn" class="btn btn-outline btn-sm" style="margin-bottom:12px;">+ Add New Biller</button>
+        <!-- PHYSIOTHERAPISTS TAB -->
+        <div id="tab-physios" class="admin-pane active">
+          <button id="addPhysioBtn" class="btn btn-outline btn-sm" style="margin-bottom:12px;">+ Add New Physiotherapist</button>
           <div class="table-scroll">
             <table class="biller-table">
-              <thead><tr><th>ID</th><th>Name</th><th>Active</th><th>Tax</th><th>Bank</th><th>Discount</th><th>Dashboard</th><th>Find/Edit</th><th>Stock View</th><th>Stock Edit</th><th>Report DL</th><th>Letterpad</th><th>Actions</th></tr></thead>
-              <tbody id="billerTableBody"></tbody>
+              <thead><tr><th>ID</th><th>Name</th><th>Active</th><th>Find/Edit</th><th>Reports</th><th>Dashboard</th><th>Signature</th><th>Actions</th></tr></thead>
+              <tbody id="physioTableBody"></tbody>
             </table>
           </div>
         </div>
 
-        <!-- SHOP DETAILS TAB -->
-        <div id="tab-shop" class="admin-pane">
+        <!-- CLINIC DETAILS TAB -->
+        <div id="tab-clinic" class="admin-pane">
           <div class="form-grid">
             <div class="field span-2">
-              <label>App Logo URL (sidebar / login - square works best)</label>
+              <label for="s_logo">App Logo URL (sidebar / login - square works best)</label>
               <input id="s_logo" type="text" placeholder="https://...">
             </div>
             <div class="field span-2">
-              <label>Print Bill Logo URL (invoice - rectangular logo recommended)</label>
+              <label for="s_printLogo">Print Logo URL (assessment sheet header - rectangular logo recommended)</label>
               <input id="s_printLogo" type="text" placeholder="https://... (leave blank to use App Logo)">
-              <div class="field-hint">Used only on the printed / PDF invoice. Prefer a wide rectangular logo.</div>
             </div>
-            <div class="field">
-              <label>Company Name</label>
-              <input id="s_companyName" type="text">
-            </div>
-            <div class="field">
-              <label>Phone</label>
-              <input id="s_phone" type="tel" inputmode="numeric" placeholder="10 digits, digits only">
-            </div>
+            <div class="field"><label for="s_clinicName">Clinic Name</label><input id="s_clinicName" type="text"></div>
+            <div class="field"><label for="s_phone">Phone</label><input id="s_phone" type="text"></div>
+            <div class="field span-2"><label for="s_address">Address</label><textarea id="s_address" rows="2"></textarea></div>
+            <div class="field"><label for="s_website">Website</label><input id="s_website" type="text"></div>
+            <div class="field"><label for="s_clinicEmail">Clinic Email</label><input id="s_clinicEmail" type="text"></div>
+            <div class="field"><label for="s_registrationNo">Registration / License No. (optional)</label><input id="s_registrationNo" type="text"></div>
             <div class="field span-2">
-              <label>Address</label>
-              <textarea id="s_address" rows="2"></textarea>
+              <label>Social Links (footer of emailed records)</label>
             </div>
-            <div class="field">
-              <label>Website</label>
-              <input id="s_website" type="text">
-            </div>
-            <div class="field">
-              <label>GST Number</label>
-              <input id="s_gst" type="text" placeholder="e.g. 33ABCDE1234F1Z5">
-            </div>
-            <div class="field span-2">
-              <label>Social Links (used only in the emailed invoice's footer)</label>
-              <p class="field-hint" style="margin:0 0 10px;">Leave any of these blank to simply not show that icon. Phone and Company Email above are reused automatically for the phone/mail icons - nothing to fill in for those two.</p>
-            </div>
-            <div class="field">
-              <label>WhatsApp Number</label>
-              <input id="s_socialWhatsapp" type="tel" inputmode="numeric" placeholder="10-digit number, e.g. 9629495946">
-            </div>
-            <div class="field">
-              <label>Instagram URL</label>
-              <input id="s_socialInstagram" type="text" placeholder="https://instagram.com/yourprofile">
-            </div>
-            <div class="field">
-              <label>Facebook URL</label>
-              <input id="s_socialFacebook" type="text" placeholder="https://facebook.com/yourprofile">
-            </div>
-            <div class="field">
-              <label>LinkedIn URL</label>
-              <input id="s_socialLinkedin" type="text" placeholder="https://linkedin.com/company/yourprofile">
-            </div>
-            <div class="field">
-              <label>YouTube URL</label>
-              <input id="s_socialYoutube" type="text" placeholder="https://youtube.com/@yourprofile">
-            </div>
+            <div class="field"><label for="s_socialWhatsapp">WhatsApp Number</label><input id="s_socialWhatsapp" type="text" placeholder="9629495946"></div>
+            <div class="field"><label for="s_socialInstagram">Instagram URL</label><input id="s_socialInstagram" type="text"></div>
+            <div class="field"><label for="s_socialFacebook">Facebook URL</label><input id="s_socialFacebook" type="text"></div>
+            <div class="field"><label for="s_socialLinkedin">LinkedIn URL</label><input id="s_socialLinkedin" type="text"></div>
+            <div class="field"><label for="s_socialYoutube">YouTube URL</label><input id="s_socialYoutube" type="text"></div>
           </div>
-          <button id="saveSettingsBtn" class="btn btn-primary" style="margin-top:14px;">Save Shop Details</button>
-          <button id="refreshDashboardSheetBtn" class="btn btn-outline" style="margin-top:10px;">&#128202; Refresh Dashboard Sheet &amp; Charts</button>
+          <button id="saveClinicBtn" class="btn btn-primary" style="margin-top:10px;">Save Clinic Details</button>
+          <div id="clinicStatus" class="biller-status"></div>
         </div>
 
-        <!-- INVOICE / TAX TAB -->
-        <div id="tab-invoice" class="admin-pane">
-          <p class="field-hint" style="margin-bottom:14px;">Control what appears on the printed bill. Tax rates of 0% hide the tax lines automatically.</p>
-
-          <h4 style="margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.4px;color:var(--theme-section-heading);">Company contact on bill</h4>
-          <div class="form-grid" style="margin-bottom:18px;">
-            <div class="field">
-              <label>Company Email</label>
-              <input id="s_companyEmail" type="email" placeholder="billing@example.com">
-            </div>
-            <div class="field">
-              <label>Show Company Email on bill</label>
-              <select id="s_showCompanyEmail">
-                <option value="TRUE">Yes - show</option>
-                <option value="FALSE">No - hide</option>
-              </select>
-            </div>
+        <!-- ISSUES LIST TAB -->
+        <div id="tab-issues" class="admin-pane">
+          <div class="issue-add-row">
+            <input id="newIssueName" type="text" placeholder="New issue / diagnosis type name" aria-label="New issue name">
+            <button id="addIssueAdminBtn" class="btn btn-outline btn-sm">+ Add</button>
           </div>
-
-          <h4 style="margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.4px;color:var(--theme-section-heading);">Tax rates (CGST / SGST)</h4>
-          <div class="form-grid" style="margin-bottom:18px;">
-            <div class="field">
-              <label>CGST %</label>
-              <input id="s_cgst" type="number" min="0" max="100" step="0.01" value="0">
-            </div>
-            <div class="field">
-              <label>SGST %</label>
-              <input id="s_sgst" type="number" min="0" max="100" step="0.01" value="0">
-            </div>
-            <div class="field span-2">
-              <label>Allow tax to be added to bills</label>
-              <select id="s_showTaxOnBill">
-                <option value="TRUE">Yes - billers with Tax access can switch it on, per bill</option>
-                <option value="FALSE">No - tax option not offered to anyone</option>
-              </select>
-              <div class="field-hint">Tax is never applied automatically. Each bill starts with tax OFF - only a biller with Tax access, who then switches the toggle on for that specific bill, gets tax added. This setting just controls whether that option exists at all.</div>
-            </div>
-          </div>
-
-          <h4 style="margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.4px;color:var(--theme-section-heading);">Bank details on bill</h4>
-          <div class="form-grid" style="margin-bottom:18px;">
-            <div class="field">
-              <label>Bank Name</label>
-              <input id="s_bankName" type="text" placeholder="e.g. Yes Bank">
-            </div>
-            <div class="field">
-              <label>Account Number</label>
-              <input id="s_bankAccountNo" type="text" inputmode="numeric" placeholder="9-18 digits">
-            </div>
-            <div class="field">
-              <label>IFSC Code</label>
-              <input id="s_bankIFSC" type="text" placeholder="e.g. YESB0000123">
-            </div>
-            <div class="field">
-              <label>Account Holder Name</label>
-              <input id="s_bankAccountHolder" type="text">
-            </div>
-            <div class="field span-2">
-              <label>Show bank details on bill</label>
-              <select id="s_showBankDetails">
-                <option value="TRUE">Yes - show</option>
-                <option value="FALSE">No - hide</option>
-              </select>
-            </div>
-          </div>
-
-          <h4 style="margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.4px;color:var(--theme-section-heading);">Discounts on bill</h4>
-          <div class="form-grid" style="margin-bottom:18px;">
-            <div class="field span-2">
-              <label>Allow discounts to be applied to bills</label>
-              <select id="s_showDiscountOption">
-                <option value="TRUE">Yes - billers with Discount access can apply per-Service/Treatment and/or whole-bill discounts</option>
-                <option value="FALSE">No - discount option not offered to anyone</option>
-              </select>
-              <div class="field-hint">Also gated per-biller in the Billers table below - a biller needs BOTH this switched on AND their own Discount access toggle to use it. Discounts are off by default on every bill, entered as a % that's calculated automatically.</div>
-            </div>
-          </div>
-
-          <h4 style="margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.4px;color:var(--theme-section-heading);">Authorized signatory</h4>
-          <div class="form-grid" style="margin-bottom:18px;">
-            <div class="field">
-              <label>Label on bill</label>
-              <input id="s_signatoryLabel" type="text" placeholder="Authorized Signatory">
-            </div>
-            <div class="field">
-              <label>Show signature box on bill</label>
-              <select id="s_showAuthorizedSignatory">
-                <option value="TRUE">Yes - show</option>
-                <option value="FALSE">No - hide</option>
-              </select>
-            </div>
-          </div>
-
-          <button id="saveInvoiceSettingsBtn" class="btn btn-primary">Save Invoice / Tax Settings</button>
-        </div>
-
-
-        <!-- PRODUCTS TAB -->
-        <div id="tab-products" class="admin-pane">
-          <div class="form-grid" style="margin-bottom:12px;">
-            <div class="field">
-              <label>New Service / Treatment Name</label>
-              <input id="np_name" type="text">
-            </div>
-            <div class="field">
-              <label>Default Price</label>
-              <input id="np_price" type="number" min="0" step="0.01">
-            </div>
-            <div class="field">
-              <label>Starting Stock <span style="font-weight:400;color:var(--muted);">(optional)</span></label>
-              <input id="np_stock" type="number" min="0" step="1" placeholder="Leave blank = not tracked">
-            </div>
-          </div>
-          <button id="addProductBtnAdmin" class="btn btn-outline btn-sm">+ Add Service / Treatment</button>
-          <div class="field-hint" style="margin-top:8px;">Day-to-day stock updates happen in the <b>Inventory</b> menu - this just sets the count when a product is first created.</div>
-          <div class="table-scroll" style="margin-top:14px;">
+          <div class="table-scroll">
             <table class="biller-table">
-              <thead><tr><th>Service / Treatment</th><th>Default Price</th><th>Stock</th><th>Status</th><th></th></tr></thead>
-              <tbody id="productTableBody"></tbody>
+              <thead><tr><th>ID</th><th>Name</th><th>Active</th><th>Actions</th></tr></thead>
+              <tbody id="issueTableBody"></tbody>
             </table>
           </div>
+        </div>
 
-          <div class="ds-panel" style="margin-top:18px;">
+        <!-- THEME TAB -->
+        <div id="tab-theme" class="admin-pane">
+          <p class="field-hint" style="margin-bottom:14px;">Change the colors used everywhere in this app - the login screen, sidebar, buttons, headings, tabs, dashboard charts, the authorization box, and the printed assessment sheet (on-screen preview, Print, Save-as-PDF and the emailed PDF all share these same settings). Every section below shows a live preview right next to it. Changes apply the moment you click Save - no redeploy, no code, needed.</p>
+
+          <!-- LOGIN SCREEN -->
+          <div class="theme-section">
+            <h4>Login Screen</h4>
+            <p>The credentials page shown before anyone signs in. The logo shown here is the same one set under Clinic Details &rarr; App Logo URL - no separate image needed.</p>
+            <div class="theme-section-body">
+              <div class="theme-fields">
+                <div class="theme-field"><label>Background Style</label><select id="th_ThemeLoginBgStyle" class="th-style-select" data-preview="loginPreview"><option value="solid">Solid</option><option value="gradient-diagonal">Gradient - Diagonal</option><option value="gradient-vertical">Gradient - Vertical</option><option value="gradient-horizontal">Gradient - Horizontal</option></select></div>
+                <div class="theme-field"><label>Start Color</label><input type="color" id="th_ThemeLoginBgFrom" class="th-input" data-preview="loginPreview"></div>
+                <div class="theme-field"><label>End Color</label><input type="color" id="th_ThemeLoginBgTo" class="th-input" data-preview="loginPreview"></div>
+                <div class="theme-field"><label>Card Background</label><input type="color" id="th_ThemeLoginCardBg" class="th-input" data-preview="loginPreview"></div>
+                <div class="theme-field"><label>Heading Text</label><input type="color" id="th_ThemeLoginHeadingColor" class="th-input" data-preview="loginPreview"></div>
+                <div class="theme-field"><label>Subtext</label><input type="color" id="th_ThemeLoginTextColor" class="th-input" data-preview="loginPreview"></div>
+              </div>
+              <div class="theme-preview" id="loginPreview">
+                <div class="theme-preview-label">PREVIEW</div>
+                <div class="tp-login-bg"><div class="tp-login-card"><div class="tp-login-logo"></div><div class="tp-login-name">SJ Physiotherapy</div><div class="tp-login-sub">Patient Assessment</div></div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SIDEBAR -->
+          <div class="theme-section">
+            <h4>Menubar / Sidebar</h4>
+            <p>The menu item currently open (e.g. "Dashboard" while you're on the Dashboard screen) uses its own Active colors below.</p>
+            <div class="theme-section-body">
+              <div class="theme-fields">
+                <div class="theme-field"><label>Style</label><select id="th_ThemeSidebarStyle" class="th-style-select" data-preview="sidebarPreview"><option value="solid">Solid</option><option value="gradient-diagonal">Gradient - Diagonal</option><option value="gradient-vertical">Gradient - Vertical</option><option value="gradient-horizontal">Gradient - Horizontal</option></select></div>
+                <div class="theme-field"><label>Start Color</label><input type="color" id="th_ThemeSidebarFrom" class="th-input" data-preview="sidebarPreview"></div>
+                <div class="theme-field"><label>End Color</label><input type="color" id="th_ThemeSidebarTo" class="th-input" data-preview="sidebarPreview"></div>
+                <div class="theme-field"><label>Text / Icon Color</label><input type="color" id="th_ThemeSidebarText" class="th-input" data-preview="sidebarPreview"></div>
+                <div class="theme-field"><label>Active Item Background</label><input type="color" id="th_ThemeNavActiveBg" class="th-input" data-preview="sidebarPreview"></div>
+                <div class="theme-field"><label>Active Item Text</label><input type="color" id="th_ThemeNavActiveText" class="th-input" data-preview="sidebarPreview"></div>
+              </div>
+              <div class="theme-preview" id="sidebarPreview">
+                <div class="theme-preview-label">PREVIEW</div>
+                <div class="tp-sidebar">
+                  <div class="tp-sidebar-item">&#128221; New Assessment</div>
+                  <div class="tp-sidebar-item tp-active">&#128202; Dashboard</div>
+                  <div class="tp-sidebar-item">&#9881;&#65039; Admin Settings</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- BUTTONS -->
+          <div class="theme-section">
+            <h4>Buttons &amp; Accent</h4>
+            <p>Also used for links and focus outlines throughout the app (separate from the Active Item colors above). Filled/gradient buttons cover "Save &amp; Generate Record"; bordered/outline buttons cover Logout, Refresh, Clear Filters, and every button styled that way.</p>
+            <div class="theme-section-body">
+              <div class="theme-fields">
+                <div class="theme-field"><label>Style</label><select id="th_ThemeButtonStyle" class="th-style-select" data-preview="buttonPreview"><option value="solid">Solid</option><option value="gradient-diagonal">Gradient - Diagonal</option><option value="gradient-vertical">Gradient - Vertical</option><option value="gradient-horizontal">Gradient - Horizontal</option></select></div>
+                <div class="theme-field"><label>Start Color</label><input type="color" id="th_ThemeButtonFrom" class="th-input" data-preview="buttonPreview"></div>
+                <div class="theme-field"><label>End Color</label><input type="color" id="th_ThemeButtonTo" class="th-input" data-preview="buttonPreview"></div>
+                <div class="theme-field"><label>Button Text</label><input type="color" id="th_ThemeButtonText" class="th-input" data-preview="buttonPreview"></div>
+                <div class="theme-field"><label>Hover - Start</label><input type="color" id="th_ThemeButtonHoverFrom" class="th-input" data-preview="buttonPreview"></div>
+                <div class="theme-field"><label>Hover - End</label><input type="color" id="th_ThemeButtonHoverTo" class="th-input" data-preview="buttonPreview"></div>
+                <div class="theme-field"><label>Outline Text / Border</label><input type="color" id="th_ThemeOutlineText" class="th-input" data-preview="buttonPreview"></div>
+                <div class="theme-field"><label>Outline Border (if different)</label><input type="color" id="th_ThemeOutlineBorder" class="th-input" data-preview="buttonPreview"></div>
+                <div class="theme-field"><label>Outline Hover Background</label><input type="color" id="th_ThemeOutlineHoverBg" class="th-input" data-preview="buttonPreview"></div>
+                <div class="theme-field"><label>Outline Hover Text</label><input type="color" id="th_ThemeOutlineHoverText" class="th-input" data-preview="buttonPreview"></div>
+              </div>
+              <div class="theme-preview" id="buttonPreview">
+                <div class="theme-preview-label">PREVIEW (TOP: NORMAL / BOTTOM: HOVER)</div>
+                <div class="tp-btn-row"><span class="tp-btn-fill">Save &amp; Generate Record</span><span class="tp-btn-fill tp-hover">on hover</span></div>
+                <div class="tp-btn-row"><span class="tp-btn-outline">&#8635; Refresh</span><span class="tp-btn-outline tp-hover">on hover</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- HEADINGS -->
+          <div class="theme-section">
+            <h4>Page &amp; Section Headings</h4>
+            <p>"Page Heading" is the big title at the top of every screen (e.g. "New Assessment", "Reports"), and its grey explainer line right underneath. "Section Heading" is every smaller title inside a page - things like "Patient &amp; Visit Details" here, or "Confirm &amp; Save" in the assessment form.</p>
+            <div class="theme-section-body">
+              <div class="theme-fields">
+                <div class="theme-field"><label>Page Heading</label><input type="color" id="th_ThemePageHeadingColor" class="th-input" data-preview="headingPreview"></div>
+                <div class="theme-field"><label>Page Subheading</label><input type="color" id="th_ThemePageSubheadingColor" class="th-input" data-preview="headingPreview"></div>
+                <div class="theme-field"><label>Section Heading</label><input type="color" id="th_ThemeSectionHeadingColor" class="th-input" data-preview="headingPreview"></div>
+              </div>
+              <div class="theme-preview" id="headingPreview">
+                <div class="theme-preview-label">PREVIEW</div>
+                <div class="tp-page-heading">New Assessment</div>
+                <div class="tp-page-sub">Fill in every section below exactly as on the clinic's paper assessment sheet.</div>
+                <div class="tp-section-heading">PATIENT &amp; VISIT DETAILS</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TABS -->
+          <div class="theme-section">
+            <h4>Tabs</h4>
+            <p>These Admin Settings tabs (Physiotherapists / Clinic Details / Theme / ...) and the Reports tabs (Universal / Daily) share this same styling.</p>
+            <div class="theme-section-body">
+              <div class="theme-fields">
+                <div class="theme-field"><label>Active Tab Text</label><input type="color" id="th_ThemeTabActiveTextColor" class="th-input" data-preview="tabsPreview"></div>
+                <div class="theme-field"><label>Inactive Tab Text</label><input type="color" id="th_ThemeTabInactiveTextColor" class="th-input" data-preview="tabsPreview"></div>
+                <div class="theme-field"><label>Underline Style</label><select id="th_ThemeTabIndicatorStyle" class="th-style-select" data-preview="tabsPreview"><option value="solid">Solid</option><option value="gradient-diagonal">Gradient - Diagonal</option><option value="gradient-horizontal">Gradient - Horizontal</option></select></div>
+                <div class="theme-field"><label>Underline Start</label><input type="color" id="th_ThemeTabIndicatorFrom" class="th-input" data-preview="tabsPreview"></div>
+                <div class="theme-field"><label>Underline End</label><input type="color" id="th_ThemeTabIndicatorTo" class="th-input" data-preview="tabsPreview"></div>
+              </div>
+              <div class="theme-preview" id="tabsPreview">
+                <div class="theme-preview-label">PREVIEW</div>
+                <div class="tp-tabs">
+                  <span class="tp-tab tp-tab-active">Physiotherapists</span>
+                  <span class="tp-tab">Clinic Details</span>
+                  <span class="tp-tab">Theme</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- AUTHORIZATION BOX -->
+          <div class="theme-section">
+            <h4>Authorization Highlight Box</h4>
+            <p>The highlighted box on the assessment form ("Confirm &amp; Save") that holds the physiotherapist or Super Admin credential fields.</p>
+            <div class="theme-section-body">
+              <div class="theme-fields">
+                <div class="theme-field"><label>Box Background</label><input type="color" id="th_ThemeGateBgColor" class="th-input" data-preview="gatePreview"></div>
+                <div class="theme-field"><label>Box Border</label><input type="color" id="th_ThemeGateBorderColor" class="th-input" data-preview="gatePreview"></div>
+                <div class="theme-field"><label>Box Title</label><input type="color" id="th_ThemeGateTitleColor" class="th-input" data-preview="gatePreview"></div>
+              </div>
+              <div class="theme-preview" id="gatePreview">
+                <div class="theme-preview-label">PREVIEW</div>
+                <div class="tp-gate">&#128274; Confirm &amp; Save (Physiotherapist Authorization Required)</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ASSESSMENT SHEET DESIGN -->
+          <div class="theme-section">
+            <h4>Assessment Sheet Design</h4>
+            <p>One shared design for every assessment record, wherever it's shown - the on-screen preview, Print, Save-as-PDF, and the emailed PDF attachment all use these exact same settings.</p>
+            <div class="theme-section-body">
+              <div class="theme-fields">
+                <div class="theme-field"><label>Header Color</label><input type="color" id="th_ThemeDocHeaderColor" class="th-input" data-preview="docPreview"></div>
+                <div class="theme-field"><label>Field NAME Color</label><input type="color" id="th_ThemeFieldLabelColor" class="th-input" data-preview="docPreview"></div>
+                <div class="theme-field"><label>Field VALUE Color</label><input type="color" id="th_ThemeFieldValueColor" class="th-input" data-preview="docPreview"></div>
+                <div class="theme-field"><label>Section Band Background</label><input type="color" id="th_ThemeSectionBandColor" class="th-input" data-preview="docPreview"></div>
+                <div class="theme-field"><label>Font</label>
+                  <select id="th_ThemeDocFontFamily" class="th-style-select" data-preview="docPreview">
+                    <option value="Georgia, 'Times New Roman', Times, serif">Georgia (serif)</option>
+                    <option value="'Times New Roman', Times, serif">Times New Roman (serif)</option>
+                    <option value="Arial, Helvetica, sans-serif">Arial (sans-serif)</option>
+                    <option value="'Trebuchet MS', sans-serif">Trebuchet MS (sans-serif)</option>
+                    <option value="'Courier New', monospace">Courier New (monospace)</option>
+                  </select>
+                </div>
+                <div class="theme-field"><label>Header Layout</label>
+                  <select id="th_ThemeDocHeaderLayout" class="th-style-select" data-preview="docPreview">
+                    <option value="logo-side">Logo beside company info</option>
+                    <option value="logo-top">Logo above company info</option>
+                  </select>
+                </div>
+              </div>
+              <div class="theme-preview" id="docPreview">
+                <div class="theme-preview-label">PREVIEW</div>
+                <div class="tp-doc-header">
+                  <span class="tp-doc-logo">LOGO</span>
+                  <div><div class="tp-doc-name">SJ Physiotherapy</div><div class="tp-doc-info">Bharathiyar Rd, Coimbatore &bull; +91 97897 31317</div></div>
+                  <span class="tp-doc-id">PAF-000123</span>
+                </div>
+                <div class="tp-doc-band">Patient Details</div>
+                <div class="tp-doc-field"><span class="tp-doc-fl">Patient Name:</span> <span class="tp-doc-fv">Ramesh Kumar</span></div>
+              </div>
+            </div>
+
+            <div class="theme-subrow">
+              <label class="theme-subrow-label">Logo Size (px)</label>
+              <div class="theme-logo-size-row">
+                <input type="number" id="th_ThemeDocLogoWidth" class="th-input th-logo-num" min="20" max="300" aria-label="Logo width">
+                <span>&times;</span>
+                <input type="number" id="th_ThemeDocLogoHeight" class="th-input th-logo-num" min="20" max="300" aria-label="Logo height">
+                <button type="button" class="btn btn-outline btn-sm logo-preset-btn" data-w="80" data-h="80">Square</button>
+                <button type="button" class="btn btn-outline btn-sm logo-preset-btn" data-w="140" data-h="60">Wide rectangle</button>
+                <button type="button" class="btn btn-outline btn-sm logo-preset-btn" data-w="70" data-h="110">Tall rectangle</button>
+              </div>
+              <p class="field-hint">The logo is never stretched or cropped to fit - pick whatever width/height ratio matches your actual logo file.</p>
+            </div>
+
+            <div class="theme-subrow theme-style-cols">
+              <div>
+                <label class="theme-subrow-label">Company Name</label>
+                <label class="theme-checkbox"><input type="checkbox" id="th_ThemeDocCompanyNameBold"> Bold</label>
+                <label class="theme-checkbox"><input type="checkbox" id="th_ThemeDocCompanyNameItalic"> Italic</label>
+                <label class="theme-checkbox"><input type="checkbox" id="th_ThemeDocCompanyNameUnderline"> Underline</label>
+              </div>
+              <div>
+                <label class="theme-subrow-label">Company Info (address, phone, etc.)</label>
+                <label class="theme-checkbox"><input type="checkbox" id="th_ThemeDocCompanyInfoBold"> Bold</label>
+                <label class="theme-checkbox"><input type="checkbox" id="th_ThemeDocCompanyInfoItalic"> Italic</label>
+                <label class="theme-checkbox"><input type="checkbox" id="th_ThemeDocCompanyInfoUnderline"> Underline</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- TEXT & BACKGROUNDS -->
+          <div class="theme-section">
+            <h4>Text &amp; Backgrounds</h4>
+            <p>"Card Background" is what every panel/box on screen sits on (if text seems to "disappear", the text color you picked is too close to this card color). "Page Background" is the strip of color around the cards on every page.</p>
+            <div class="theme-section-body">
+              <div class="theme-fields">
+                <div class="theme-field"><label>Heading / Primary Text</label><input type="color" id="th_ThemeHeadingColor" class="th-input" data-preview="textPreview"></div>
+                <div class="theme-field"><label>Muted / Secondary Text</label><input type="color" id="th_ThemeMutedColor" class="th-input" data-preview="textPreview"></div>
+                <div class="theme-field"><label>Card / Panel Background</label><input type="color" id="th_ThemeSurfaceColor" class="th-input" data-preview="textPreview"></div>
+                <div class="theme-field"><label>Page Background</label><input type="color" id="th_ThemeBgColor" class="th-input" data-preview="textPreview"></div>
+                <div class="theme-field"><label>Border / Divider Color</label><input type="color" id="th_ThemeBorderColor" class="th-input" data-preview="textPreview"></div>
+              </div>
+              <div class="theme-preview" id="textPreview">
+                <div class="theme-preview-label">PREVIEW (THIS IS THE REAL COMBINATION)</div>
+                <div class="tp-text-outer">
+                  <div class="tp-text-card">
+                    <div class="tp-text-heading">Low Back Pain</div>
+                    <div class="tp-text-muted">Visit PAF-000123 &bull; 17 Sep 2026</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CHART COLORS -->
+          <div class="theme-section">
+            <h4>Chart &amp; Number Card Colors</h4>
+            <p>Used in order for every bar/pie/donut chart on the Dashboard (and any custom chart you build).</p>
+            <div class="theme-section-body">
+              <div class="theme-fields theme-fields-chart">
+                <div class="theme-chart-swatches" id="themeChartSwatches"></div>
+              </div>
+              <div class="theme-preview" id="chartPreview">
+                <div class="theme-preview-label">CHART PREVIEW</div>
+                <div class="tp-chart-bars" id="tpChartBars"></div>
+                <div class="theme-preview-label" style="margin-top:10px;">NUMBER CARD PREVIEW</div>
+                <div class="tp-number-cards" id="tpNumberCards"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-actions" style="margin-top:16px;">
+            <button id="resetThemeBtn" class="btn btn-outline btn-sm">Reset to Default Theme</button>
+            <button id="saveThemeBtn" class="btn btn-primary btn-sm">Save Theme</button>
+          </div>
+          <div id="themeStatus" class="biller-status"></div>
+        </div>
+        <!-- DATABASE TAB -->
+        <div id="tab-database" class="admin-pane">
+          <div class="ds-panel">
             <div class="ds-panel-head">
               <h4>Database(s) Status</h4>
               <button type="button" class="btn btn-outline btn-sm" id="checkDataStatusBtn">&#8635; Refresh</button>
@@ -1022,520 +965,86 @@
             </div>
             <div class="ds-actions">
               <button type="button" class="btn btn-primary btn-sm" id="addNewDatabaseBtn">&#10133; Add New Database Now</button>
-              <button type="button" class="btn btn-outline btn-sm" id="refreshNumberingBtn">&#128260; Refresh Numbering</button>
               <button type="button" class="btn btn-outline btn-sm ds-danger-btn" id="resetToActiveOnlyBtn">&#9888;&#65039; Reset Numbering &amp; Forget Old Archives</button>
             </div>
-            <div id="dbExpandResult" style="display:none;margin-top:12px;font-size:12.5px;color:var(--ink-soft);line-height:1.6;background:var(--bg);border-radius:var(--radius-sm);padding:10px 12px;"></div>
+            <div id="dbExpandResult" class="ds-expand-result" style="display:none;"></div>
             <p class="ds-note">
-              Invoice, Patient and Product numbers are tracked by this app separately from the spreadsheet
-              itself - that's deliberate, it's what lets numbering carry on smoothly across an "Add New Database"
-              switch. If you ever edit a spreadsheet directly (clear rows by hand, test "Make a copy"), those
-              numbers won't automatically notice - click "Refresh Numbering" to re-sync them from what's
-              actually in the sheet(s) without losing any linked archives, or "Reset Numbering &amp; Forget Old
-              Archives" if you no longer need those archives at all.
-              Once a spreadsheet is archived, its invoices become read-only (Find/Edit Bill will show them but
-              won't allow changes) - the same principle as not editing a closed financial year's books.
+              Visit and Issue numbers are tracked by this app separately from the spreadsheet itself - that's
+              deliberate, it's what lets numbering carry on smoothly across an "Add New Database" switch without
+              restarting. <b>Add New Database Now</b> creates a brand-new spreadsheet, copies your clinic settings,
+              physiotherapist accounts, issues list and patients into it, archives the current one as read-only
+              patient-visit history, and switches every new record there - immediately, with no Apps Script editor
+              involved. <b>Reset Numbering &amp; Forget Old Archives</b> is only for fixing numbering after manually
+              editing the sheet, or undoing a test switch - it does not delete any spreadsheet or any row.
             </p>
           </div>
         </div>
 
-        <!-- THEME TAB (Super Admin only - colors used across the entire app) -->
-        <div id="tab-theme" class="admin-pane">
-          <p class="field-hint" style="margin-bottom:20px;">
-            Change the colors used everywhere in this app - the login screen, menubar/sidebar, buttons, page
-            headings, tabs, dashboard/inventory charts and number cards, the Find/Edit highlight box, and the
-            bill header and typography (company name + invoice number on every bill, both on screen and when
-            shared by print, PDF or email). Every option below shows a live preview right next to it. Changes
-            apply for every biller and device the moment you click Save - no redeploy, no code, needed. This
-            only ever changes colors, fonts and layout - nothing here can affect how the app works.
-          </p>
-
-          <!-- ===== LOGIN SCREEN ===== -->
-          <div class="theme-section">
-            <h4 class="theme-section-title">Login Screen</h4>
-            <p class="field-hint" style="margin:-6px 0 12px;">The credentials page shown before anyone signs in. The logo shown here is the same one set under Shop Details &rarr; Logo URL (or Print Logo URL, if set) - no separate image needed.</p>
-            <div class="theme-row">
-              <div class="theme-row-controls">
-                <div class="field">
-                  <label>Background Style</label>
-                  <select id="theme_loginBgStyle">
-                    <option value="solid">Solid</option>
-                    <option value="gradient-diagonal">Gradient - Diagonal</option>
-                    <option value="gradient-vertical">Gradient - Vertical</option>
-                    <option value="gradient-horizontal">Gradient - Horizontal</option>
-                  </select>
-                </div>
-                <div class="field">
-                  <label>Start Color</label>
-                  <input id="theme_loginBgFrom" type="color" value="#FF3131">
-                </div>
-                <div class="field" id="theme_loginBgToWrap">
-                  <label>End Color</label>
-                  <input id="theme_loginBgTo" type="color" value="#FF914D">
-                </div>
-                <div class="field">
-                  <label>Card Background</label>
-                  <input id="theme_loginCardBg" type="color" value="#FFFFFF">
-                </div>
-                <div class="field">
-                  <label>Heading Text</label>
-                  <input id="theme_loginHeading" type="color" value="#182322">
-                </div>
-                <div class="field">
-                  <label>Subtext</label>
-                  <input id="theme_loginText" type="color" value="#4B5A57">
-                </div>
-              </div>
-              <div class="theme-preview-box" style="flex:1 1 220px;">
-                <div class="theme-preview-label">Preview</div>
-                <div id="preview_loginScreen"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- ===== MENUBAR / SIDEBAR ===== -->
-          <div class="theme-section">
-            <h4 class="theme-section-title">Menubar / Sidebar</h4>
-            <div class="theme-row">
-              <div class="theme-row-controls">
-                <div class="field">
-                  <label>Style</label>
-                  <select id="theme_sidebarStyle">
-                    <option value="solid">Solid</option>
-                    <option value="gradient-diagonal">Gradient - Diagonal</option>
-                    <option value="gradient-vertical">Gradient - Vertical</option>
-                    <option value="gradient-horizontal">Gradient - Horizontal</option>
-                  </select>
-                </div>
-                <div class="field">
-                  <label>Start Color</label>
-                  <input id="theme_sidebarFrom" type="color" value="#FF3131">
-                </div>
-                <div class="field" id="theme_sidebarToWrap">
-                  <label>End Color</label>
-                  <input id="theme_sidebarTo" type="color" value="#FF914D">
-                </div>
-                <div class="field">
-                  <label>Text / Icon Color</label>
-                  <input id="theme_sidebarText" type="color" value="#FFFFFF">
-                </div>
-              </div>
-              <div class="theme-preview-box">
-                <div class="theme-preview-label">Preview</div>
-                <div id="preview_sidebar"></div>
-              </div>
-            </div>
-            <div class="theme-row">
-              <div class="theme-row-controls">
-                <p class="field-hint" style="margin:0 0 8px;width:100%;">The menu item currently open (e.g. "Dashboard" while you're on the Dashboard screen).</p>
-                <div class="field">
-                  <label>Active Menu Background</label>
-                  <input id="theme_navActiveBg" type="color" value="#FFFFFF">
-                </div>
-                <div class="field">
-                  <label>Active Menu Text</label>
-                  <input id="theme_navActiveText" type="color" value="#FF3131">
-                </div>
-              </div>
-              <div class="theme-preview-box">
-                <div class="theme-preview-label">Preview</div>
-                <div id="preview_navActive"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- ===== BUTTONS & ACCENT ===== -->
-          <div class="theme-section">
-            <h4 class="theme-section-title">Buttons &amp; Accent</h4>
-            <p class="field-hint" style="margin:-6px 0 12px;">Also used for links and focus outlines throughout the app (separate from the Active Menu colors above). "Solid/Bordered" buttons below covers Logout, Refresh, Check Data Status, Reset Numbering, and every other button styled that way.</p>
-            <div class="theme-row">
-              <div class="theme-row-controls">
-                <div class="field">
-                  <label>Style</label>
-                  <select id="theme_buttonStyle">
-                    <option value="solid">Solid</option>
-                    <option value="gradient-diagonal">Gradient - Diagonal</option>
-                    <option value="gradient-vertical">Gradient - Vertical</option>
-                    <option value="gradient-horizontal">Gradient - Horizontal</option>
-                  </select>
-                </div>
-                <div class="field">
-                  <label>Start Color</label>
-                  <input id="theme_buttonFrom" type="color" value="#FF3131">
-                </div>
-                <div class="field" id="theme_buttonToWrap">
-                  <label>End Color</label>
-                  <input id="theme_buttonTo" type="color" value="#FF914D">
-                </div>
-                <div class="field">
-                  <label>Button Text</label>
-                  <input id="theme_buttonText" type="color" value="#FFFFFF">
-                </div>
-              </div>
-            </div>
-            <div class="theme-row">
-              <div class="theme-row-controls">
-                <p class="field-hint" style="margin:0 0 8px;width:100%;">Filled/gradient buttons (Save &amp; Generate Bill, etc.) - what they look like on hover.</p>
-                <div class="field">
-                  <label>Hover Start Color</label>
-                  <input id="theme_buttonHoverFrom" type="color" value="#FF3131">
-                </div>
-                <div class="field">
-                  <label>Hover End Color</label>
-                  <input id="theme_buttonHoverTo" type="color" value="#FF914D">
-                </div>
-              </div>
-            </div>
-            <div class="theme-row">
-              <div class="theme-row-controls">
-                <p class="field-hint" style="margin:0 0 8px;width:100%;">Bordered/outline buttons (Logout, Refresh, Check Data Status, etc.) - normal and hover colors.</p>
-                <div class="field">
-                  <label>Text / Border</label>
-                  <input id="theme_outlineText" type="color" value="#FF3131">
-                </div>
-                <div class="field">
-                  <label>Border (if different)</label>
-                  <input id="theme_outlineBorder" type="color" value="#FF3131">
-                </div>
-                <div class="field">
-                  <label>Hover Background</label>
-                  <input id="theme_outlineHoverBg" type="color" value="#FCE2DC">
-                </div>
-                <div class="field">
-                  <label>Hover Text</label>
-                  <input id="theme_outlineHoverText" type="color" value="#FF3131">
-                </div>
-              </div>
-              <div class="theme-preview-box" style="flex:1 1 260px;">
-                <div class="theme-preview-label">Preview (top: normal / bottom: hover)</div>
-                <div id="preview_buttons"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- ===== PAGE & SECTION HEADINGS ===== -->
-          <div class="theme-section">
-            <h4 class="theme-section-title">Page &amp; Section Headings</h4>
-            <p class="field-hint" style="margin:-6px 0 12px;">
-              "Page Heading" is the big title at the top of every menu page (e.g. "Create Bill", "Reports"), and
-              its grey explainer line right underneath. "Section Heading" is every smaller title used inside a
-              page - things like "Products" here in Admin Settings, "Chart Colors" above, or "Super Admin - Edit
-              This Bill" in Find/Edit.
-            </p>
-            <div class="theme-row">
-              <div class="theme-row-controls">
-                <div class="field">
-                  <label>Page Heading</label>
-                  <input id="theme_pageHeading" type="color" value="#182322">
-                </div>
-                <div class="field">
-                  <label>Page Subheading</label>
-                  <input id="theme_pageSubheading" type="color" value="#4B5A57">
-                </div>
-                <div class="field">
-                  <label>Section Heading</label>
-                  <input id="theme_sectionHeading" type="color" value="#182322">
-                </div>
-              </div>
-              <div class="theme-preview-box" style="flex:1 1 260px;">
-                <div class="theme-preview-label">Preview</div>
-                <div id="preview_headings"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- ===== TABS ===== -->
-          <div class="theme-section">
-            <h4 class="theme-section-title">Tabs</h4>
-            <p class="field-hint" style="margin:-6px 0 12px;">These Admin Settings tabs (Billers / Shop Details / Theme / ...) and the Reports tabs (Universal / Daily / Inventory Log) share this same styling.</p>
-            <div class="theme-row">
-              <div class="theme-row-controls">
-                <div class="field">
-                  <label>Active Tab Text</label>
-                  <input id="theme_tabActiveText" type="color" value="#FF3131">
-                </div>
-                <div class="field">
-                  <label>Inactive Tab Text</label>
-                  <input id="theme_tabInactiveText" type="color" value="#4B5A57">
-                </div>
-                <div class="field">
-                  <label>Underline Style</label>
-                  <select id="theme_tabIndicatorStyle">
-                    <option value="solid">Solid</option>
-                    <option value="gradient-diagonal">Gradient - Diagonal</option>
-                    <option value="gradient-vertical">Gradient - Vertical</option>
-                    <option value="gradient-horizontal">Gradient - Horizontal</option>
-                  </select>
-                </div>
-                <div class="field">
-                  <label>Underline Start</label>
-                  <input id="theme_tabIndicatorFrom" type="color" value="#FF3131">
-                </div>
-                <div class="field" id="theme_tabIndicatorToWrap">
-                  <label>Underline End</label>
-                  <input id="theme_tabIndicatorTo" type="color" value="#FF914D">
-                </div>
-              </div>
-              <div class="theme-preview-box" style="flex:1 1 220px;">
-                <div class="theme-preview-label">Preview</div>
-                <div id="preview_tabs"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- ===== FIND/EDIT HIGHLIGHT BOX ===== -->
-          <div class="theme-section">
-            <h4 class="theme-section-title">Find/Edit Highlight Box</h4>
-            <p class="field-hint" style="margin:-6px 0 12px;">The highlighted box in Find/Edit Bill that holds the Super Admin credential fields and the editable bill fields.</p>
-            <div class="theme-row">
-              <div class="theme-row-controls">
-                <div class="field">
-                  <label>Box Background</label>
-                  <input id="theme_gateBg" type="color" value="#FBF1DC">
-                </div>
-                <div class="field">
-                  <label>Box Border</label>
-                  <input id="theme_gateBorder" type="color" value="#E8C766">
-                </div>
-                <div class="field">
-                  <label>Box Title</label>
-                  <input id="theme_gateTitle" type="color" value="#C68A1E">
-                </div>
-              </div>
-              <div class="theme-preview-box" style="flex:1 1 220px;">
-                <div class="theme-preview-label">Preview</div>
-                <div id="preview_gate"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- ===== BILL / PDF DESIGN ===== -->
-          <div class="theme-section">
-            <h4 class="theme-section-title">Bill / PDF Design</h4>
-            <p class="field-hint" style="margin:-6px 0 12px;">One shared design for every bill, wherever it's shown - the on-screen preview, Print, Save-as-PDF, and the emailed invoice (PDF attachment + email body) all use these exact same settings, so a patient never sees two differently-styled versions of the same bill.</p>
-            <div class="theme-row">
-              <div class="theme-row-controls">
-                <div class="field">
-                  <label>Header Color</label>
-                  <input id="theme_billHeader" type="color" value="#E1341E">
-                </div>
-                <div class="field">
-                  <label>Discount / Tax Amount Color</label>
-                  <input id="theme_billDiscount" type="color" value="#B23A2E">
-                </div>
-                <div class="field">
-                  <label>Font</label>
-                  <select id="theme_billFont">
-                    <option value="Georgia, 'Times New Roman', Times, serif">Georgia (serif)</option>
-                    <option value="'Times New Roman', Times, serif">Times New Roman (serif)</option>
-                    <option value="Cambria, Georgia, serif">Cambria (serif)</option>
-                    <option value="Arial, Helvetica, sans-serif">Arial (sans-serif)</option>
-                    <option value="'Trebuchet MS', Helvetica, sans-serif">Trebuchet MS (sans-serif)</option>
-                    <option value="Verdana, Geneva, sans-serif">Verdana (sans-serif)</option>
-                    <option value="'Courier New', Courier, monospace">Courier New (monospace)</option>
-                  </select>
-                </div>
-                <div class="field">
-                  <label>Header Layout</label>
-                  <select id="theme_billLayout">
-                    <option value="logo-side">Logo beside company info</option>
-                    <option value="logo-top">Logo above company info</option>
-                  </select>
-                </div>
-              </div>
-              <div class="theme-preview-box" style="flex:1 1 280px;">
-                <div class="theme-preview-label">Preview</div>
-                <div id="preview_billHeader"></div>
-              </div>
-            </div>
-            <div class="theme-row">
-              <div class="theme-row-controls">
-                <div class="field" style="min-width:220px;">
-                  <label>Logo Size (px)</label>
-                  <div style="display:flex;gap:8px;align-items:center;">
-                    <input id="theme_billLogoWidth" type="number" min="20" max="400" value="96" style="width:80px;" placeholder="Width">
-                    <span style="color:var(--muted);">&times;</span>
-                    <input id="theme_billLogoHeight" type="number" min="20" max="400" value="58" style="width:80px;" placeholder="Height">
-                  </div>
-                  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
-                    <button type="button" class="btn btn-outline btn-sm theme-preset-btn" data-w="70" data-h="70">Square</button>
-                    <button type="button" class="btn btn-outline btn-sm theme-preset-btn" data-w="130" data-h="50">Wide rectangle</button>
-                    <button type="button" class="btn btn-outline btn-sm theme-preset-btn" data-w="60" data-h="100">Tall rectangle</button>
-                  </div>
-                  <p class="field-hint" style="margin-top:8px;">The logo is never stretched or cropped to fit - pick whatever width/height ratio matches your actual logo file (a wide horizontal wordmark logo needs a wide box, a square badge logo needs an equal width/height).</p>
-                </div>
-              </div>
-            </div>
-            <div class="theme-row">
-              <div class="theme-row-controls">
-                <div class="field">
-                  <label>Company Name</label>
-                  <div class="theme-checkbox-row">
-                    <label class="theme-checkbox"><input id="theme_billNameBold" type="checkbox" checked> Bold</label>
-                    <label class="theme-checkbox"><input id="theme_billNameItalic" type="checkbox"> Italic</label>
-                    <label class="theme-checkbox"><input id="theme_billNameUnderline" type="checkbox"> Underline</label>
-                  </div>
-                </div>
-                <div class="field">
-                  <label>Company Info (address, phone, etc.)</label>
-                  <div class="theme-checkbox-row">
-                    <label class="theme-checkbox"><input id="theme_billInfoBold" type="checkbox"> Bold</label>
-                    <label class="theme-checkbox"><input id="theme_billInfoItalic" type="checkbox"> Italic</label>
-                    <label class="theme-checkbox"><input id="theme_billInfoUnderline" type="checkbox"> Underline</label>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- ===== TEXT & BACKGROUNDS ===== -->
-          <div class="theme-section">
-            <h4 class="theme-section-title">Text &amp; Backgrounds</h4>
-            <p class="field-hint" style="margin:-6px 0 12px;">
-              These five work together, so they're grouped here - "Card Background" is what every panel/box on
-              screen sits on (this is what changes if text seems to "disappear": it means the text color you
-              picked is too close to this card color). "Page Background" is the strip of color around the cards
-              on every page, including the Dashboard. The sidebar, login screen, headings, tabs, and bill header
-              all have their own separate colors above/below - this section won't touch any of those.
-            </p>
-            <div class="theme-row">
-              <div class="theme-row-controls">
-                <div class="field">
-                  <label>Heading / Primary Text</label>
-                  <input id="theme_heading" type="color" value="#182322">
-                </div>
-                <div class="field">
-                  <label>Muted / Secondary Text</label>
-                  <input id="theme_muted" type="color" value="#4B5A57">
-                </div>
-                <div class="field">
-                  <label>Card / Panel Background</label>
-                  <input id="theme_surface" type="color" value="#FFFFFF">
-                </div>
-                <div class="field">
-                  <label>Page Background</label>
-                  <input id="theme_bg" type="color" value="#F6F4F3">
-                </div>
-                <div class="field">
-                  <label>Border / Divider Color</label>
-                  <input id="theme_border" type="color" value="#E7DCD8">
-                </div>
-              </div>
-              <div class="theme-preview-box" style="flex:1 1 280px;">
-                <div class="theme-preview-label">Preview (this is the real combination)</div>
-                <div id="preview_textBg"></div>
-                <div id="preview_textBg_warning" class="theme-warning"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- ===== CHART & NUMBER CARD COLORS ===== -->
-          <div class="theme-section" style="border-bottom:none;margin-bottom:14px;">
-            <h4 class="theme-section-title">Chart &amp; Number Card Colors</h4>
-            <p class="field-hint" style="margin:-6px 0 12px;">Used in order for every bar/pie/donut chart on the Dashboard (and any custom chart you build). The first 4 colors also drive the Dashboard's and Inventory's number cards below, and are offered as the default color when you build a new Number Card chart.</p>
-            <div class="theme-row">
-              <div class="theme-row-controls" style="gap:10px;flex-wrap:wrap;">
-                <input id="theme_chart0" type="color" value="#E1341E">
-                <input id="theme_chart1" type="color" value="#FF914D">
-                <input id="theme_chart2" type="color" value="#AE2314">
-                <input id="theme_chart3" type="color" value="#F2A65A">
-                <input id="theme_chart4" type="color" value="#8C2F39">
-                <input id="theme_chart5" type="color" value="#4B5A57">
-                <input id="theme_chart6" type="color" value="#2E86AB">
-                <input id="theme_chart7" type="color" value="#6C4FB6">
-                <input id="theme_chart8" type="color" value="#1F9E78">
-                <input id="theme_chart9" type="color" value="#D4A017">
-                <input id="theme_chart10" type="color" value="#7A5C61">
-                <input id="theme_chart11" type="color" value="#3D5A80">
-              </div>
-              <div class="theme-preview-box" style="flex:1 1 260px;">
-                <div class="theme-preview-label">Chart Preview</div>
-                <div id="preview_charts"></div>
-                <div class="theme-preview-label" style="margin-top:12px;">Number Card Preview</div>
-                <div id="preview_kpi"></div>
-              </div>
-            </div>
-          </div>
-
-          <div style="display:flex;flex-wrap:wrap;gap:10px;">
-            <button id="saveThemeBtn" class="btn btn-primary">Save Theme</button>
-            <button id="resetThemeBtn" class="btn btn-outline">Reset to Default Theme</button>
-          </div>
-        </div>
-
-
-        <!-- ACCOUNT TAB (Super Admin's own login) -->
+        <!-- MY LOGIN TAB -->
         <div id="tab-account" class="admin-pane">
-          <p class="field-hint" style="margin-bottom:14px;">
-            Change the username/password used to log in as Super Admin. Enter your CURRENT credentials
-            above (the "Super Admin Username / Password" fields at the top of this panel) to authorize
-            the change - then set your new ones below. Leave a field blank to keep it unchanged.
-          </p>
-          <div class="form-grid">
-            <div class="field">
-              <label>New Super Admin Username</label>
-              <input id="acc_newUser" type="text" placeholder="Leave blank to keep current username">
+          <div id="accountAdminPane">
+            <h4>Super Admin Login</h4>
+            <div class="form-grid">
+              <div class="field"><label for="acc_newUser">New Username</label><input id="acc_newUser" type="text" autocomplete="off"></div>
+              <div class="field"><label for="acc_newPass">New Password</label><input id="acc_newPass" type="password" autocomplete="new-password"></div>
             </div>
-            <div class="field">
-              <label>New Super Admin Password</label>
-              <input id="acc_newPass" type="password" placeholder="Leave blank to keep current password">
-            </div>
-            <div class="field">
-              <label>Confirm New Password</label>
-              <input id="acc_confirmPass" type="password" placeholder="Re-type new password">
-            </div>
+            <button id="saveAdminLoginBtn" class="btn btn-primary btn-sm">Update Login</button>
+            <div id="adminLoginStatus" class="biller-status"></div>
           </div>
-          <button id="saveAccountBtn" class="btn btn-primary" style="margin-top:14px;">Update My Login</button>
-          <div id="accountStatus" class="biller-status"></div>
+          <div id="accountPhysioPane" style="display:none;">
+            <h4>My Password</h4>
+            <div class="form-grid">
+              <div class="field"><label for="acc_currentPass">Current Password</label><input id="acc_currentPass" type="password" autocomplete="current-password"></div>
+              <div class="field"><label for="acc_physioNewPass">New Password</label><input id="acc_physioNewPass" type="password" autocomplete="new-password"></div>
+            </div>
+            <button id="savePhysioPassBtn" class="btn btn-primary btn-sm">Update Password</button>
+            <div id="physioPassStatus" class="biller-status"></div>
+
+            <h4 style="margin-top:22px;">My Signature</h4>
+            <p class="field-hint">Upload a PNG of your signature once - it will be pulled in automatically every time you sign an assessment.</p>
+            <div class="sig-upload-row">
+              <img id="mySignaturePreview" class="sig-preview" style="display:none;" alt="My signature">
+              <input type="file" id="signatureFileInput" accept="image/png" aria-label="Signature PNG file">
+            </div>
+            <div class="field" style="max-width:260px;"><label for="acc_sigPassword">Confirm Password to Upload</label><input id="acc_sigPassword" type="password" autocomplete="current-password"></div>
+            <button id="uploadSignatureBtn" class="btn btn-primary btn-sm">Upload Signature</button>
+            <div id="signatureStatus" class="biller-status"></div>
+          </div>
         </div>
       </div>
     </section>
-
   </div>
 </div>
 
-<!-- ===================== ADD BILLER MODAL ===================== -->
-<div id="billerModal" class="modal-overlay">
-  <div class="modal-box">
-    <h3 id="billerModalTitle">Add Biller</h3>
-    <input type="hidden" id="bm_editId">
-    <div class="field">
-      <label>Biller Name</label>
-      <input id="bm_name" type="text">
+<!-- ===================== SHARE RECORD MODAL ===================== -->
+<div id="shareRecordModal" class="modal-overlay">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="shareRecordTitle">
+    <h3 id="shareRecordTitle">Share Record</h3>
+    <div class="share-btn-row">
+      <button id="sharePrintBtn" class="btn btn-outline btn-sm">&#128424;&#65039; Print</button>
+      <button id="shareDownloadPdfBtn" class="btn btn-outline btn-sm">&#11015;&#65039; Save as PDF</button>
+      <button id="shareViaEmailBtn" class="btn btn-outline btn-sm">&#128231; Email</button>
+      <button id="shareViaWhatsappBtn" class="btn btn-outline btn-sm">&#128241; WhatsApp</button>
     </div>
-    <div class="field">
-      <label>Password</label>
-      <input id="bm_password" type="text" placeholder="Leave blank to keep unchanged (when editing)">
+    <p class="share-hint" id="shareHint"></p>
+    <div id="sharePdfReady" class="share-pdf-ready" hidden>
+      <span class="share-pdf-name" id="sharePdfName">PDF ready</span>
+      <div class="share-pdf-actions">
+        <a id="sharePdfDownloadLink" class="btn btn-primary btn-sm" href="#" download>&#11015;&#65039; Download PDF</a>
+        <a id="sharePdfOpenLink" class="btn btn-outline btn-sm" href="#" target="_blank" rel="noopener">Open</a>
+        <button id="sharePdfShareBtn" type="button" class="btn btn-outline btn-sm" hidden>&#128228; Share PDF</button>
+      </div>
     </div>
-    <div class="modal-actions">
-      <button class="btn btn-outline btn-sm" id="bm_cancel">Cancel</button>
-      <button class="btn btn-primary btn-sm" id="bm_save">Save Biller</button>
+    <div id="shareEmailField" class="field" style="display:none;">
+      <label for="share_email">Recipient Email</label>
+      <input id="share_email" type="email" inputmode="email" placeholder="patient@example.com">
+      <button id="shareEmailPreviewBtn" class="btn btn-outline btn-sm" style="margin-top:6px;">Preview Email</button>
     </div>
-  </div>
-</div>
-
-<!-- ===================== SHARE BILL MODAL ===================== -->
-<div id="shareBillModal" class="modal-overlay">
-  <div class="modal-box">
-    <h3 id="shareBillTitle">Share Bill</h3>
-    <input type="hidden" id="share_billId">
-    <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
-      <button type="button" class="btn btn-outline btn-sm" id="shareViaEmailBtn" style="flex:1;min-width:120px;">&#128231; Email</button>
-      <button type="button" class="btn btn-outline btn-sm" id="shareViaWhatsappBtn" style="flex:1;min-width:120px;">&#128241; WhatsApp</button>
-      <button type="button" class="btn btn-outline btn-sm" id="sharePrintBtn" style="flex:1;min-width:120px;">&#128424;&#65039; Print</button>
-      <button type="button" class="btn btn-outline btn-sm" id="shareDownloadPdfBtn" style="flex:1;min-width:120px;">&#11015;&#65039; Save as PDF</button>
+    <div id="shareWhatsappField" class="field" style="display:none;">
+      <label for="share_phone">WhatsApp Number</label>
+      <input id="share_phone" type="tel" inputmode="tel" placeholder="10-digit mobile number">
     </div>
-    <p class="field-hint" style="margin:-6px 0 12px;">You can do more than one of these, one after another - this only closes when you click Close.</p>
-    <div class="field" id="shareEmailField" style="display:none;">
-      <label>Patient Email ID</label>
-      <input id="share_email" type="email" placeholder="name@example.com">
-      <button type="button" class="btn btn-outline btn-sm" id="shareEmailPreviewBtn" style="margin-top:10px;">&#128065;&#65039; Preview Email</button>
-    </div>
-    <div class="field" id="shareWhatsappField" style="display:none;">
-      <label>WhatsApp Number (10 digits, or with country code - digits only)</label>
-      <input id="share_phone" type="tel" inputmode="numeric" placeholder="e.g. 9876543210">
-    </div>
-    <div id="shareStatus" class="biller-status"></div>
+    <div id="shareStatus" class="biller-status" role="status"></div>
     <div class="modal-actions">
       <button class="btn btn-outline btn-sm" id="share_cancel">Close</button>
       <button class="btn btn-primary btn-sm" id="share_send" style="display:none;">Send</button>
@@ -1543,94 +1052,52 @@
   </div>
 </div>
 
-<!-- ===================== EMAIL PREVIEW MODAL ===================== -->
+<!-- EMAIL PREVIEW MODAL -->
 <div id="emailPreviewModal" class="modal-overlay">
-  <div class="modal-box modal-box-lg">
+  <div class="modal-box modal-box-lg" role="dialog" aria-modal="true" aria-label="Email preview">
     <h3>Email Preview</h3>
-    <p class="field-hint" style="margin:-6px 0 12px;">Exactly what the patient will receive - same header, footer and bill summary, before you click Send.</p>
-    <div class="email-preview-frame-wrap">
-      <iframe id="emailPreviewFrame" title="Email preview" sandbox=""></iframe>
-    </div>
+    <iframe id="emailPreviewFrame" class="email-preview-frame" title="Email preview"></iframe>
     <div class="modal-actions">
       <button class="btn btn-outline btn-sm" id="emailPreview_close">Close</button>
-      <button class="btn btn-primary btn-sm" id="emailPreview_send">Send Email</button>
+      <button class="btn btn-primary btn-sm" id="emailPreview_send">Send This Email</button>
     </div>
   </div>
 </div>
 
-<!-- ===================== REPORT DOWNLOAD MODAL ===================== -->
-<div id="reportDownloadModal" class="modal-overlay">
-  <div class="modal-box">
-    <h3>Download Report</h3>
-    <p class="field-hint" style="margin-bottom:16px;">Choose what to include in the Excel file.</p>
-    <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:6px;">
-      <button type="button" class="btn btn-primary btn-sm" id="reportDownloadFilteredBtn" style="width:100%;">
-        &#128269; Filtered / Visible Data Only
-      </button>
-      <div class="field-hint" style="margin:-4px 0 4px 2px;">Only the rows matching your current filters, with only the columns currently shown.</div>
-      <button type="button" class="btn btn-outline btn-sm" id="reportDownloadEntireBtn" style="width:100%;">
-        &#128193; Entire Report
-      </button>
-      <div class="field-hint" style="margin:-4px 0 0 2px;">Every loaded row and every column, ignoring filters and hidden columns.</div>
+<!-- ADD/EDIT PHYSIOTHERAPIST MODAL -->
+<div id="physioModal" class="modal-overlay">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="physioModalTitle">
+    <h3 id="physioModalTitle">Add Physiotherapist</h3>
+    <input type="hidden" id="pm_editId">
+    <div class="form-grid">
+      <div class="field span-2"><label for="pm_name">Name</label><input id="pm_name" type="text"></div>
+      <div class="field span-2"><label for="pm_password">Password</label><input id="pm_password" type="password" autocomplete="new-password" placeholder="Leave blank to keep unchanged (edit mode)"></div>
+      <div class="field span-2">
+        <label for="pm_signatureUrl">Signature Image URL <span class="field-hint-inline">(optional - same idea as the App Logo URL in Clinic Details)</span></label>
+        <input id="pm_signatureUrl" type="text" placeholder="https://... link to a PNG of their signature">
+      </div>
     </div>
+    <div class="sig-preview-row" style="margin-top:8px;">
+      <div class="sig-preview-box" style="width:150px;height:60px;">
+        <img id="pm_signaturePreview" class="sig-preview-img" style="display:none;" alt="Signature preview">
+        <span id="pm_signatureEmpty" class="sig-preview-empty">No signature set</span>
+      </div>
+      <p class="field-hint" style="margin:0;">Super Admin can set this directly here, or the physiotherapist can upload their own from My Login after they log in - either way updates the same field.</p>
+    </div>
+    <div id="physioModalStatus" class="biller-status"></div>
     <div class="modal-actions">
-      <button class="btn btn-outline btn-sm" id="reportDownloadCancelBtn">Cancel</button>
+      <button class="btn btn-outline btn-sm" id="pm_cancel">Cancel</button>
+      <button class="btn btn-primary btn-sm" id="pm_save">Save</button>
     </div>
   </div>
 </div>
 
-<!-- ===================== DATABASE FULL MODAL ===================== -->
-<div id="dbFullModal" class="modal-overlay">
-  <div class="modal-box">
-    <h3>&#128274; Database Full</h3>
-    <p class="field-hint" style="margin-bottom:4px;">
-      This database is <b id="dbFullPercentText">full</b> and can't accept new bills right now.
-    </p>
-    <div id="dbFullBillerNote" style="display:none;">
-      <p style="font-size:13px;color:var(--ink-soft);line-height:1.6;">
-        Please let your Super Admin know - they can add a new database from Admin Settings in one click,
-        and billing will continue normally right after.
-      </p>
-    </div>
-    <div id="dbFullAdminActions" style="display:none;">
-      <p style="font-size:13px;color:var(--ink-soft);line-height:1.6;margin:0 0 12px;">
-        As Super Admin, you can fix this immediately - this creates a new database, carries your Billers,
-        Products and Patients over automatically, and archives the current (full) database as read-only.
-        Enter your Super Admin username/password in Admin Settings first if you haven't already this session.
-      </p>
-      <button type="button" class="btn btn-primary btn-sm" id="dbFullAddNewDatabaseBtn" style="width:100%;margin-bottom:8px;">
-        &#10133; Add New Database Now
-      </button>
-      <button type="button" class="btn btn-outline btn-sm" id="dbFullGoToAdminBtn" style="width:100%;">
-        Go to Admin Settings
-      </button>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-outline btn-sm" id="dbFullCloseBtn">Close</button>
-    </div>
-  </div>
-</div>
+<!-- PRINT ROOT - the ONLY thing printed while a record is open. A direct
+     child of <body>, so print CSS can hide everything else with
+     display:none (no blank pages, no hidden layout) and it never depends on
+     print-time events, which mobile browsers fire unreliably. -->
+<div id="printRoot" aria-hidden="true"></div>
 
-<!-- ===================== LETTERPAD RESET MODAL ===================== -->
-<div id="lpResetModal" class="modal-overlay">
-  <div class="modal-box">
-    <h3>&#128465;&#65039; Clear the letterpad?</h3>
-    <p style="font-size:13px;color:var(--ink-soft);line-height:1.6;margin:0 0 6px;">
-      This will <b>erase everything you have typed</b> on the letterpad and give you a blank sheet again.
-    </p>
-    <p style="font-size:13px;color:var(--ink-soft);line-height:1.6;margin:0;">
-      Nothing here was ever saved, so <b>this cannot be undone</b>. If you still need this letter,
-      close this box and use <b>Print / Save as PDF</b> first.
-    </p>
-    <div class="modal-actions">
-      <button class="btn btn-outline btn-sm" id="lpResetWaitBtn">Wait, go back</button>
-      <button class="btn btn-danger btn-sm" id="lpResetOkBtn">OK, erase it</button>
-    </div>
-  </div>
-</div>
-
-<div class="toast-wrap" id="toastWrap"></div>
-
-<script src="app.js?v=20261010-35-family"></script>
+<script src="app.js?v=20261013-01"></script>
 </body>
 </html>
