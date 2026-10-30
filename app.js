@@ -1335,19 +1335,26 @@ function buildAssessmentDocHtml_(a) {
 
     <div class="doc-section">
     <div class="section-band">Patient Details</div>
-    <div class="doc-row cols-4">${fld('Patient Name', a.patientName, true)}${fld('Date', a.date)}${fld('Age / Sex', (a.age || '-') + ' / ' + (a.sex || '-'))}</div>
-    <div class="doc-row cols-4">${fld('Referred By', a.referredBy)}${fld('UHID / File No.', a.uHID)}${fld('Contact No.', a.phone)}${fld('Occupation', a.occupation)}</div>
-    <div class="doc-row cols-4">${fld('Email ID', a.email)}${fld('Address', a.address, true)}${fld('How They Knew Us', a.howKnow)}</div>
+    <div class="doc-row cols-1">${fld('Patient Name', a.patientName)}</div>
+    <div class="doc-row cols-4">${fld('Date', a.date)}${fld('Age / Sex', (a.age || '-') + ' / ' + (a.sex || '-'))}${fld('Referred By', a.referredBy)}${fld('UHID / File No.', a.uHID)}</div>
+    <div class="doc-row cols-3">${fld('Contact No.', a.phone)}${fld('Occupation', a.occupation)}${fld('Email ID', a.email)}</div>
+    <div class="doc-row cols-1">${fld('Address', a.address)}</div>
+    <div class="doc-row cols-1">${fld('How They Knew Us', a.howKnow)}</div>
     <div class="doc-row cols-2">${fld('Issue Type', a.issueType)}${fld('Invoice No.', a.invoiceNumber)}</div>
-    <div class="doc-row cols-2">${fld('Chief Complaint', a.chiefComplaint)}${fld('History of Present Illness', a.historyOfPresentIllness)}</div>
+    <div class="doc-row cols-1">${fld('Chief Complaint', a.chiefComplaint)}</div>
+    <div class="doc-row cols-1">${fld('History of Present Illness', a.historyOfPresentIllness)}</div>
     </div>
 
     <div class="doc-section">
     <div class="section-band">Observation &amp; Pain Assessment</div>
-    <div class="doc-row cols-3">${fld('Posture', a.posture)}${fld('Gait', a.obsGait)}${fld('Deformity / Swelling', a.deformitySwelling)}</div>
+    <div class="doc-row cols-1">${fld('Posture', a.posture)}</div>
+    <div class="doc-row cols-1">${fld('Gait', a.obsGait)}</div>
+    <div class="doc-row cols-1">${fld('Deformity / Swelling', a.deformitySwelling)}</div>
     <div class="doc-field"><span class="fl-label" style="color:${labelColor}">Pain Assessment (VAS): </span></div>
     <div class="vas-row">${vasScale}</div>
-    <div class="doc-row cols-3">${fld('Nature of Pain', a.natureOfPain)}${fld('Aggravating Factors', a.aggravatingFactors)}${fld('Relieving Factors', a.relievingFactors)}</div>
+    <div class="doc-row cols-1">${fld('Nature of Pain', a.natureOfPain)}</div>
+    <div class="doc-row cols-1">${fld('Aggravating Factors', a.aggravatingFactors)}</div>
+    <div class="doc-row cols-1">${fld('Relieving Factors', a.relievingFactors)}</div>
     </div>
 
     <div class="doc-section">

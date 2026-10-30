@@ -1982,19 +1982,26 @@ function buildAssessmentHtmlForPdf_(a, s) {
 
     '<div class="doc-section">' +
     '<div class="section-band">Patient Details</div>' +
-    '<div class="doc-row cols-4">' + fld_('Patient Name', a.patientName, s, true) + fld_('Date', a.date, s) + fld_('Age / Sex', (a.age || '-') + ' / ' + (a.sex || '-'), s) + '</div>' +
-    '<div class="doc-row cols-4">' + fld_('Referred By', a.referredBy, s) + fld_('UHID / File No.', a.uHID, s) + fld_('Contact No.', a.phone, s) + fld_('Occupation', a.occupation, s) + '</div>' +
-    '<div class="doc-row cols-4">' + fld_('Email ID', a.email, s) + fld_('Address', a.address, s, true) + fld_('How They Knew Us', a.howKnow, s) + '</div>' +
+    '<div class="doc-row cols-1">' + fld_('Patient Name', a.patientName, s) + '</div>' +
+    '<div class="doc-row cols-4">' + fld_('Date', a.date, s) + fld_('Age / Sex', (a.age || '-') + ' / ' + (a.sex || '-'), s) + fld_('Referred By', a.referredBy, s) + fld_('UHID / File No.', a.uHID, s) + '</div>' +
+    '<div class="doc-row cols-3">' + fld_('Contact No.', a.phone, s) + fld_('Occupation', a.occupation, s) + fld_('Email ID', a.email, s) + '</div>' +
+    '<div class="doc-row cols-1">' + fld_('Address', a.address, s) + '</div>' +
+    '<div class="doc-row cols-1">' + fld_('How They Knew Us', a.howKnow, s) + '</div>' +
     '<div class="doc-row cols-2">' + fld_('Issue Type', a.issueType, s) + fld_('Invoice No.', a.invoiceNumber, s) + '</div>' +
-    '<div class="doc-row cols-2">' + fld_('Chief Complaint', a.chiefComplaint, s) + fld_('History of Present Illness', a.historyOfPresentIllness, s) + '</div>' +
+    '<div class="doc-row cols-1">' + fld_('Chief Complaint', a.chiefComplaint, s) + '</div>' +
+    '<div class="doc-row cols-1">' + fld_('History of Present Illness', a.historyOfPresentIllness, s) + '</div>' +
     '</div>' +
 
     '<div class="doc-section">' +
     '<div class="section-band">Observation &amp; Pain Assessment</div>' +
-    '<div class="doc-row cols-3">' + fld_('Posture', a.posture, s) + fld_('Gait', a.obsGait, s) + fld_('Deformity / Swelling', a.deformitySwelling, s) + '</div>' +
+    '<div class="doc-row cols-1">' + fld_('Posture', a.posture, s) + '</div>' +
+    '<div class="doc-row cols-1">' + fld_('Gait', a.obsGait, s) + '</div>' +
+    '<div class="doc-row cols-1">' + fld_('Deformity / Swelling', a.deformitySwelling, s) + '</div>' +
     '<div class="doc-field"><span class="fl-label" style="color:' + labelColor + '">Pain Assessment (VAS): </span></div>' +
     '<div class="vas-row">' + vasScale + '</div>' +
-    '<div class="doc-row cols-3">' + fld_('Nature of Pain', a.natureOfPain, s) + fld_('Aggravating Factors', a.aggravatingFactors, s) + fld_('Relieving Factors', a.relievingFactors, s) + '</div>' +
+    '<div class="doc-row cols-1">' + fld_('Nature of Pain', a.natureOfPain, s) + '</div>' +
+    '<div class="doc-row cols-1">' + fld_('Aggravating Factors', a.aggravatingFactors, s) + '</div>' +
+    '<div class="doc-row cols-1">' + fld_('Relieving Factors', a.relievingFactors, s) + '</div>' +
     '</div>' +
 
     '<div class="doc-section">' +
