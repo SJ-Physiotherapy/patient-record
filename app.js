@@ -1255,11 +1255,11 @@ function invalidateDataCaches_() {
 // 20. RECORD DOCUMENT RENDERING (client-side mirror of buildAssessmentHtmlForPdf_
 //     in Code.gs - same structure/classes).
 // -------------------------------------------------------------------------
-function fld(label, value) {
+function fld(label, value, wide) {
   const s = state.settings;
   const shown = (value === null || value === undefined || value === '') ? '-' : value;
   const labelHtml = label ? `<span class="fl-label" style="color:${escapeHtml(s.ThemeFieldLabelColor || '#2778b7')}">${escapeHtml(label)}: </span>` : '';
-  return `<div class="doc-field">${labelHtml}<span class="fl-value" style="color:${escapeHtml(s.ThemeFieldValueColor || '#000000')}">${escapeHtml(shown)}</span></div>`;
+  return `<div class="doc-field${wide ? ' wide' : ''}">${labelHtml}<span class="fl-value" style="color:${escapeHtml(s.ThemeFieldValueColor || '#000000')}">${escapeHtml(shown)}</span></div>`;
 }
 function romTableHtmlClient_(jsonStr) {
   const dataObj = safeParse_(jsonStr, {});
@@ -1335,10 +1335,10 @@ function buildAssessmentDocHtml_(a) {
 
     <div class="doc-section">
     <div class="section-band">Patient Details</div>
-    <div class="doc-row cols-4">${fld('Patient Name', a.patientName)}${fld('Date', a.date)}${fld('Referred By', a.referredBy)}${fld('Age / Sex', (a.age || '-') + ' / ' + (a.sex || '-'))}</div>
-    <div class="doc-row cols-4">${fld('UHID / File No.', a.uHID)}${fld('Contact No.', a.phone)}${fld('Occupation', a.occupation)}${fld('Email ID', a.email)}</div>
-    <div class="doc-row cols-3">${fld('Address', a.address)}${fld('How They Knew Us', a.howKnow)}${fld('Invoice No.', a.invoiceNumber)}</div>
-    <div class="doc-row cols-1">${fld('Issue Type', a.issueType)}</div>
+    <div class="doc-row cols-4">${fld('Patient Name', a.patientName, true)}${fld('Date', a.date)}${fld('Age / Sex', (a.age || '-') + ' / ' + (a.sex || '-'))}</div>
+    <div class="doc-row cols-4">${fld('Referred By', a.referredBy)}${fld('UHID / File No.', a.uHID)}${fld('Contact No.', a.phone)}${fld('Occupation', a.occupation)}</div>
+    <div class="doc-row cols-4">${fld('Email ID', a.email)}${fld('Address', a.address, true)}${fld('How They Knew Us', a.howKnow)}</div>
+    <div class="doc-row cols-2">${fld('Issue Type', a.issueType)}${fld('Invoice No.', a.invoiceNumber)}</div>
     <div class="doc-row cols-2">${fld('Chief Complaint', a.chiefComplaint)}${fld('History of Present Illness', a.historyOfPresentIllness)}</div>
     </div>
 

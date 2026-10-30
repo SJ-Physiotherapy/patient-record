@@ -1882,10 +1882,10 @@ function safeJsonParse_(str, fallback) {
   try { return JSON.parse(str); } catch (e) { return fallback; }
 }
 
-function fld_(label, value, s) {
+function fld_(label, value, s, wide) {
   const labelHtml = label ? '<span class="fl-label" style="color:' + (s.ThemeFieldLabelColor || '#2778b7') + '">' + escHtml_(label) + ': </span>' : '';
   const shown = (value === null || value === undefined || value === '') ? '-' : value;
-  return '<div class="doc-field">' + labelHtml +
+  return '<div class="doc-field' + (wide ? ' wide' : '') + '">' + labelHtml +
     '<span class="fl-value" style="color:' + (s.ThemeFieldValueColor || '#000000') + '">' + escHtml_(shown) + '</span>' +
     '</div>';
 }
@@ -1982,10 +1982,10 @@ function buildAssessmentHtmlForPdf_(a, s) {
 
     '<div class="doc-section">' +
     '<div class="section-band">Patient Details</div>' +
-    '<div class="doc-row cols-4">' + fld_('Patient Name', a.patientName, s) + fld_('Date', a.date, s) + fld_('Referred By', a.referredBy, s) + fld_('Age / Sex', (a.age || '-') + ' / ' + (a.sex || '-'), s) + '</div>' +
-    '<div class="doc-row cols-4">' + fld_('UHID / File No.', a.uHID, s) + fld_('Contact No.', a.phone, s) + fld_('Occupation', a.occupation, s) + fld_('Email ID', a.email, s) + '</div>' +
-    '<div class="doc-row cols-3">' + fld_('Address', a.address, s) + fld_('How They Knew Us', a.howKnow, s) + fld_('Invoice No.', a.invoiceNumber, s) + '</div>' +
-    '<div class="doc-row cols-1">' + fld_('Issue Type', a.issueType, s) + '</div>' +
+    '<div class="doc-row cols-4">' + fld_('Patient Name', a.patientName, s, true) + fld_('Date', a.date, s) + fld_('Age / Sex', (a.age || '-') + ' / ' + (a.sex || '-'), s) + '</div>' +
+    '<div class="doc-row cols-4">' + fld_('Referred By', a.referredBy, s) + fld_('UHID / File No.', a.uHID, s) + fld_('Contact No.', a.phone, s) + fld_('Occupation', a.occupation, s) + '</div>' +
+    '<div class="doc-row cols-4">' + fld_('Email ID', a.email, s) + fld_('Address', a.address, s, true) + fld_('How They Knew Us', a.howKnow, s) + '</div>' +
+    '<div class="doc-row cols-2">' + fld_('Issue Type', a.issueType, s) + fld_('Invoice No.', a.invoiceNumber, s) + '</div>' +
     '<div class="doc-row cols-2">' + fld_('Chief Complaint', a.chiefComplaint, s) + fld_('History of Present Illness', a.historyOfPresentIllness, s) + '</div>' +
     '</div>' +
 
@@ -2101,7 +2101,13 @@ function docPrintCss_(font, headerFrom, headerTo, headingColor) {
     '.doc-row.cols-2>.doc-field,.doc-row.cols-2>div{flex:1 1 calc(50% - 20px);min-width:200px;}' +
     '.doc-row.cols-3>.doc-field,.doc-row.cols-3>div{flex:1 1 calc(33.333% - 20px);min-width:160px;}' +
     '.doc-row.cols-4>.doc-field,.doc-row.cols-4>div{flex:1 1 calc(25% - 20px);min-width:140px;}' +
-    '.doc-field{font-size:12px;padding:3px 0;line-height:1.5;} .fl-label{font-weight:bold;} .muted{color:#8a938f;font-style:italic;}' +
+    // Label stays on one line; the value wraps beside it (hanging), never under it.
+    '.doc-field{display:flex;align-items:baseline;font-size:12px;padding:3px 0;line-height:1.5;min-width:0;}' +
+    '.doc-field .fl-label{font-weight:bold;flex:0 0 auto;white-space:nowrap;margin-right:6px;}' +
+    '.doc-field .fl-value{flex:1 1 auto;min-width:0;overflow-wrap:anywhere;word-break:break-word;}' +
+    '.doc-row.cols-4>.doc-field.wide{flex:1 1 calc(50% - 20px);min-width:260px;}' +
+    '.doc-row.cols-2>.doc-field.wide{flex:1 1 calc(50% - 20px);}' +
+    '.muted{color:#8a938f;font-style:italic;}' +
     '.vas-row{display:flex;justify-content:space-between;max-width:420px;margin:6px 0 10px;font-size:11px;}' +
     '.vas-num{width:18px;height:18px;border:1px solid #999;border-radius:50%;text-align:center;line-height:18px;}' +
     '.vas-active{background-color:#d1352f;color:#fff;border-color:#d1352f;font-weight:bold;}' +
