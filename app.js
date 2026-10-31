@@ -1942,7 +1942,13 @@ function dashFilterToolbarHtml_(widgetKey, f) {
         <input type="date" class="dcf-datefrom" data-widget="${widgetKey}" value="${escapeHtml(f.dateFrom)}" aria-label="From date">
         <input type="date" class="dcf-dateto" data-widget="${widgetKey}" value="${escapeHtml(f.dateTo)}" aria-label="To date">
       </div>
-    </div>`;
+    </div>
+    <button type="button" class="dcf-clear${dashFilterActive_(f) ? ' show' : ''}" data-widget="${widgetKey}">&#10005; Clear Filter</button>`;
+}
+
+// True when a card has any filter set (dimension, value or date range).
+function dashFilterActive_(f) {
+  return !!(f && (f.filterBy || f.filterValue || f.dateFrom || f.dateTo));
 }
 
 function renderDashCardFilters_() {
@@ -1957,19 +1963,35 @@ function renderDashCardFilters_() {
 
 function wireDashFilterToolbar_(scopeNodeList, filterState, onChange) {
   scopeNodeList.forEach(scope => {
+    // Shows/hides this card's "Clear Filter" button as filters come and go.
+    const syncClear = id => {
+      const btn = scope.querySelector(`.dcf-clear[data-widget="${id}"]`);
+      if (btn) btn.classList.toggle('show', dashFilterActive_(filterState[id]));
+    };
     scope.querySelectorAll('.dcf-filterby').forEach(sel => sel.onchange = () => {
       const id = sel.dataset.widget;
       filterState[id].filterBy = sel.value; filterState[id].filterValue = '';
       populateDashFilterValueOptionsIn_(scope, id, filterState[id]);
+      syncClear(id);
       onChange(id);
     });
     scope.querySelectorAll('.dcf-filterval').forEach(sel => sel.onchange = () => {
-      const id = sel.dataset.widget; filterState[id].filterValue = sel.value; onChange(id);
+      const id = sel.dataset.widget; filterState[id].filterValue = sel.value; syncClear(id); onChange(id);
     });
     scope.querySelectorAll('.dcf-datefrom, .dcf-dateto').forEach(inp => inp.onchange = () => {
       const id = inp.dataset.widget;
       filterState[id].dateFrom = scope.querySelector(`.dcf-datefrom[data-widget="${id}"]`).value;
       filterState[id].dateTo = scope.querySelector(`.dcf-dateto[data-widget="${id}"]`).value;
+      syncClear(id);
+      onChange(id);
+    });
+    // Clear Filter: reset this card only, redraw its toolbar, re-wire it, and redraw the card.
+    scope.querySelectorAll('.dcf-clear').forEach(btn => btn.onclick = () => {
+      const id = btn.dataset.widget;
+      filterState[id] = { filterBy: '', filterValue: '', dateFrom: '', dateTo: '' };
+      scope.innerHTML = dashFilterToolbarHtml_(id, filterState[id]);
+      populateDashFilterValueOptionsIn_(scope, id, filterState[id]);
+      wireDashFilterToolbar_([scope], filterState, onChange);
       onChange(id);
     });
   });

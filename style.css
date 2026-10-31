@@ -586,6 +586,14 @@ table.rom-table .num, table.special-tests-table .num { text-align: center; width
 .dcf-row select, .dcf-row input[type=date] { width: 100%; padding: 6px 7px; border: 1px solid var(--line); border-radius: 6px; font-size: 11.5px; background: #fff; color: var(--ink); }
 .dcf-daterange { display: flex; gap: 5px; }
 .dcf-daterange input { min-width: 0; flex: 1; }
+/* "Clear Filter" on each dashboard card - hidden until that card has a filter. */
+.dcf-clear {
+  display: none; align-self: flex-start; margin-top: 2px;
+  background: var(--danger-soft); color: var(--danger); border: none;
+  font-size: 10.5px; font-weight: 700; padding: 5px 10px; border-radius: 999px; cursor: pointer;
+}
+.dcf-clear:hover { background: var(--danger); color: #fff; }
+.dcf-clear.show { display: inline-flex; }
 
 /* =========================================================================
    ADMIN SETTINGS
