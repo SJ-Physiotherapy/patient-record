@@ -278,6 +278,7 @@ function doPost(e) {
       case 'getDataDiagnostics':  result = apiGetDataDiagnostics(p); break;
       case 'autoExpandDatabase':  result = apiAutoExpandDatabase(p); break;
       case 'resetToActiveOnly':   result = apiResetToActiveOnly(p); break;
+      case 'refreshNumbering':    result = apiRefreshNumbering(p); break;
       default:
         result = { ok: false, error: 'Unknown POST action: ' + action };
     }
@@ -1835,6 +1836,51 @@ function apiResetToActiveOnly(p) {
     return { ok: true, nextVisitId: 'PAF-' + Utilities.formatString('%06d', visitMax + 1) };
   } catch (err) {
     return { ok: false, error: 'Could not reset: ' + err };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// Non-destructive counterpart to apiResetToActiveOnly. Use after hand-editing
+// a Visit ID or Issue ID directly in the sheet: it re-bases the Visit and
+// Issue counters on the HIGHEST id present in the active spreadsheet AND every
+// linked archive. Archives stay linked exactly as they are - nothing is
+// forgotten, unlinked or deleted.
+function apiRefreshNumbering(p) {
+  const auth = requireSuperAdmin_(p.superAdminUser, p.superAdminPass);
+  if (!auth.ok) return auth;
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const activeSs = ss_();
+    const archives = openArchives_(); // read only - NOT forgotten
+
+    function highestAcrossActiveAndArchives_(sheetName, idColIndex) {
+      let max = highestExistingIdSuffix_(activeSs.getSheetByName(sheetName), idColIndex);
+      archives.forEach(a => {
+        const sh = a.ss.getSheetByName(sheetName);
+        if (sh) max = Math.max(max, highestExistingIdSuffix_(sh, idColIndex));
+      });
+      return max;
+    }
+
+    const visitMax = highestAcrossActiveAndArchives_(SHEET.VISITS, V.VisitID);
+    const issueMax = highestAcrossActiveAndArchives_(SHEET.ISSUES, 0);
+
+    props.setProperty('IDCTR_PAF', String(visitMax));
+    props.setProperty('IDCTR_ISS', String(issueMax));
+    resetMemo_();
+
+    return {
+      ok: true,
+      archivesScanned: archives.length,
+      nextVisitId: 'PAF-' + Utilities.formatString('%06d', visitMax + 1),
+      nextIssueId: 'ISS-' + Utilities.formatString('%04d', issueMax + 1)
+    };
+  } catch (err) {
+    return { ok: false, error: 'Could not refresh numbering: ' + err };
   } finally {
     lock.releaseLock();
   }

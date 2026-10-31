@@ -2689,6 +2689,23 @@ el_('resetToActiveOnlyBtn').addEventListener('click', async () => {
   await loadDbStatus_();
 });
 
+// Non-destructive: re-syncs Visit / Issue numbering with what's actually in
+// the sheet (active + linked archives) and keeps every archive linked.
+el_('refreshNumberingBtn').addEventListener('click', async () => {
+  const auth = requireAdminFields_(); if (!auth) return;
+  if (!confirm('This re-checks Visit and Issue numbers against what is actually in the spreadsheet ' +
+    '(including any linked archives) and updates the next-number counters to match - useful after hand-editing ' +
+    'an ID directly in the sheet.\n\nLinked archives are kept exactly as they are - nothing is forgotten or deleted. Continue?')) return;
+  await withBusy_(el_('refreshNumberingBtn'), 'Refreshing...', async () => {
+    const r = await apiPost('refreshNumbering', { superAdminUser: auth.user, superAdminPass: auth.pass });
+    if (!r.ok) { toast(r.error || 'Refresh failed', 'error'); return; }
+    toast('Numbering refreshed' + (r.archivesScanned ? ' (scanned ' + r.archivesScanned + ' linked archive' + (r.archivesScanned === 1 ? '' : 's') + ')' : '') +
+      '. Next Visit ID: ' + r.nextVisitId, 'success');
+    invalidateDataCaches_();
+    await loadDbStatus_();
+  });
+});
+
 // ---- My Login ----
 el_('saveAdminLoginBtn').addEventListener('click', async () => {
   const auth = requireAdminFields_(); if (!auth) return;

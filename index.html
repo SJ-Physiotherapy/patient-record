@@ -979,6 +979,7 @@
             </div>
             <div class="ds-actions">
               <button type="button" class="btn btn-primary btn-sm" id="addNewDatabaseBtn">&#10133; Add New Database Now</button>
+              <button type="button" class="btn btn-outline btn-sm" id="refreshNumberingBtn">&#128260; Refresh Numbering</button>
               <button type="button" class="btn btn-outline btn-sm ds-danger-btn" id="resetToActiveOnlyBtn">&#9888;&#65039; Reset Numbering &amp; Forget Old Archives</button>
             </div>
             <div id="dbExpandResult" class="ds-expand-result" style="display:none;"></div>
@@ -988,7 +989,9 @@
               restarting. <b>Add New Database Now</b> creates a brand-new spreadsheet, copies your clinic settings,
               physiotherapist accounts, issues list and patients into it, archives the current one as read-only
               patient-visit history, and switches every new record there - immediately, with no Apps Script editor
-              involved. <b>Reset Numbering &amp; Forget Old Archives</b> is only for fixing numbering after manually
+              involved. <b>Refresh Numbering</b> re-checks Visit and Issue numbers against what is actually in the
+              sheet (and any linked archives) and keeps every archive linked - use it after hand-editing an ID.
+              <b>Reset Numbering &amp; Forget Old Archives</b> is only for fixing numbering after manually
               editing the sheet, or undoing a test switch - it does not delete any spreadsheet or any row.
             </p>
           </div>
